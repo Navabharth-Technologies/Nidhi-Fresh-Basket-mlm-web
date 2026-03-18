@@ -22,6 +22,55 @@ const WithdrawRequestScreen = ({ route }) => {
         transfer_method: 'bank' // Default method
     });
     const [loading, setLoading] = useState(false);
+    const [fetchingData, setFetchingData] = useState(true);
+
+    React.useEffect(() => {
+        const loadBankDetails = async () => {
+            try {
+                // 1. Get Profile
+                const profileRes = await apiClient.get('/users/profile');
+                const profile = profileRes.data;
+                
+                if (profile.kyc_status?.toLowerCase() !== 'approved') {
+                    Alert.alert('KYC Required', 'Your KYC must be approved before you can withdraw funds.', [
+                        { text: 'Complete KYC', onPress: () => navigation.navigate('KYCVerification') },
+                        { text: 'Go Back', onPress: () => navigation.goBack() }
+                    ]);
+                    return;
+                }
+
+                // 2. Get Payment details from KYC (Bank + UPI)
+                try {
+                    const paymentRes = await apiClient.get(`/kyc/payment-details/${profile.id}`);
+                    if (paymentRes.data) {
+                        setForm(prev => ({
+                            ...prev,
+                            name: profile.full_name || '',
+                            pan_number: profile.pan_number || '',
+                            bank_account: paymentRes.data.bank_account_number || profile.bank_account_number || '',
+                            ifsc_code: paymentRes.data.ifsc_code || profile.ifsc_code || '',
+                            upi_id: paymentRes.data.upi_id || '',
+                        }));
+                    }
+                } catch (err) {
+                    console.log('Payment details fetch failed:', err);
+                    // Fallback to profile data only
+                    setForm(prev => ({
+                        ...prev,
+                        name: profile.full_name || '',
+                        pan_number: profile.pan_number || '',
+                        bank_account: profile.bank_account_number || '',
+                        ifsc_code: profile.ifsc_code || '',
+                    }));
+                }
+            } catch (e) {
+                console.log('Error fetching bank details:', e);
+            } finally {
+                setFetchingData(false);
+            }
+        };
+        loadBankDetails();
+    }, []);
 
     const handleSubmit = async () => {
         // Validation
@@ -35,6 +84,13 @@ const WithdrawRequestScreen = ({ route }) => {
             Alert.alert('Error', 'Please fill bank details');
             return;
         }
+        
+        if (isBank) {
+            if (!/^[A-Z]{4}0[A-Z0-9]{6}$/.test(form.ifsc_code)) {
+                Alert.alert('Invalid IFSC', 'Please enter a valid 11-character IFSC code.');
+                return;
+            }
+        }
 
         if (!isBank && !form.upi_id) {
             Alert.alert('Error', 'Please fill UPI ID');
@@ -42,8 +98,8 @@ const WithdrawRequestScreen = ({ route }) => {
         }
 
         const withdrawAmount = parseFloat(form.amount);
-        if (isNaN(withdrawAmount) || withdrawAmount <= 0) {
-            Alert.alert('Error', 'Invalid withdrawal amount');
+        if (isNaN(withdrawAmount) || withdrawAmount < 500) {
+            Alert.alert('Error', 'Minimum withdrawal amount is ₹500');
             return;
         }
 
@@ -77,6 +133,7 @@ const WithdrawRequestScreen = ({ route }) => {
                 <View style={styles.header}>
                     <Landmark color={COLORS.secondary} size={32} />
                     <Text style={styles.title}>Withdraw Request</Text>
+                    {fetchingData && <ActivityIndicator size="small" color={COLORS.secondary} style={{ marginTop: 10 }} />}
                     <View style={styles.balanceTag}>
                         <Text style={styles.balanceLabel}>Available Commission:</Text>
                         <Text style={styles.balanceValue}>₹{balance}</Text>
@@ -130,11 +187,11 @@ const WithdrawRequestScreen = ({ route }) => {
                     <View style={styles.inputGroup}>
                         <Text style={styles.label}>PAN Number</Text>
                         <TextInput
-                            style={styles.input}
+                            style={[styles.input, { backgroundColor: '#f1f5f9' }]}
                             placeholder="Enter PAN"
                             autoCapitalize="characters"
                             value={form.pan_number}
-                            onChangeText={(t) => setForm({ ...form, pan_number: t })}
+                            editable={false}
                         />
                     </View>
 
@@ -147,7 +204,8 @@ const WithdrawRequestScreen = ({ route }) => {
                                     placeholder="Account Number"
                                     keyboardType="numeric"
                                     value={form.bank_account}
-                                    onChangeText={(t) => setForm({ ...form, bank_account: t })}
+                                    onChangeText={(v) => setForm({ ...form, bank_account: v.replace(/[^0-9]/g, '') })}
+                                    maxLength={20}
                                 />
                             </View>
 
@@ -158,7 +216,8 @@ const WithdrawRequestScreen = ({ route }) => {
                                     placeholder="IFSC Code"
                                     autoCapitalize="characters"
                                     value={form.ifsc_code}
-                                    onChangeText={(t) => setForm({ ...form, ifsc_code: t })}
+                                    onChangeText={(v) => setForm({ ...form, ifsc_code: v.toUpperCase().replace(/[^A-Z0-9]/g, '') })}
+                                    maxLength={11}
                                 />
                             </View>
                         </>
@@ -169,7 +228,7 @@ const WithdrawRequestScreen = ({ route }) => {
                                 style={styles.input}
                                 placeholder="yourname@upi"
                                 value={form.upi_id}
-                                onChangeText={(t) => setForm({ ...form, upi_id: t })}
+                                onChangeText={(v) => setForm({ ...form, upi_id: v.toLowerCase().replace(/\s/g, '') })}
                             />
                         </View>
                     )}
