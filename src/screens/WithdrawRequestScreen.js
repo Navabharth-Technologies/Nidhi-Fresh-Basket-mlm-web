@@ -21,8 +21,31 @@ const WithdrawRequestScreen = ({ route }) => {
         upi_id: '',
         transfer_method: 'bank' // Default method
     });
+    const [amountError, setAmountError] = useState('');
     const [loading, setLoading] = useState(false);
     const [fetchingData, setFetchingData] = useState(true);
+
+    const handleAmountChange = (t) => {
+        // Only allow numbers and one decimal point
+        const cleanText = t.replace(/[^0-9.]/g, '');
+        // Prevent multiple decimal points
+        if ((cleanText.match(/\./g) || []).length > 1) return;
+        
+        setForm({ ...form, amount: cleanText });
+        
+        const val = parseFloat(cleanText);
+        if (cleanText === '') {
+            setAmountError('');
+        } else if (isNaN(val)) {
+            setAmountError('Invalid amount');
+        } else if (val < 500) {
+            setAmountError('Minimum withdrawal amount is ₹500');
+        } else if (val > balance) {
+            setAmountError('Amount exceeds commission balance');
+        } else {
+            setAmountError('');
+        }
+    };
 
     React.useEffect(() => {
         const loadBankDetails = async () => {
@@ -174,13 +197,14 @@ const WithdrawRequestScreen = ({ route }) => {
                         <View style={styles.amountInputContainer}>
                             <Text style={styles.currencyPrefix}>₹</Text>
                             <TextInput
-                                style={[styles.input, { paddingLeft: 30 }]}
+                                style={[styles.input, { paddingLeft: 30 }, amountError ? { borderColor: 'red' } : {}]}
                                 placeholder="0.00"
                                 keyboardType="numeric"
                                 value={form.amount}
-                                onChangeText={(t) => setForm({ ...form, amount: t })}
+                                onChangeText={handleAmountChange}
                             />
                         </View>
+                        {!!amountError && <Text style={{ color: 'red', fontSize: 12, marginTop: 4, marginLeft: 4 }}>{amountError}</Text>}
                         <Text style={styles.hint}>Note: Commission balance only</Text>
                     </View>
 
@@ -235,9 +259,9 @@ const WithdrawRequestScreen = ({ route }) => {
 
                     <View style={styles.buttonGroup}>
                         <TouchableOpacity
-                            style={[styles.button, styles.submitButton]}
+                            style={[styles.button, styles.submitButton, (!!amountError || !form.amount || loading) ? { backgroundColor: '#9ca3af' } : {}]}
                             onPress={handleSubmit}
-                            disabled={loading}
+                            disabled={loading || !!amountError || !form.amount}
                         >
                             {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>Submit Request</Text>}
                         </TouchableOpacity>
