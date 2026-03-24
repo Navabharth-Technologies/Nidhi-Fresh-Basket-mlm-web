@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, Text, View, TextInput, TouchableOpacity, ScrollView, Image, Alert, ActivityIndicator } from 'react-native';
+import { StyleSheet, Text, View, TextInput, TouchableOpacity, ScrollView, Image, Alert, ActivityIndicator, Platform } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { Camera, Upload, CheckCircle, AlertCircle, FileText } from 'lucide-react-native';
 import { COLORS, SPACING, SIZES } from '../theme/theme';
@@ -28,23 +28,27 @@ const KYCUploadScreen = ({ navigation }) => {
         }
     };
 
+    const pickImageWeb = (type) => {
+        // Use native HTML file input with accept="image/*"
+        // On mobile browsers this automatically prompts Camera + Gallery choice
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = 'image/*';
+        input.onchange = (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                const uri = URL.createObjectURL(file);
+                const asset = { uri, fileName: file.name, type: file.type, _webFile: file };
+                if (type === 'aadhaar') setAadhaarImg(asset);
+                else setPanImg(asset);
+            }
+        };
+        input.click();
+    };
+
     const pickImage = async (type) => {
         if (Platform.OS === 'web') {
-            const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-            if (status !== 'granted') {
-                alert('Gallery permissions are required.');
-                return;
-            }
-            let result = await ImagePicker.launchImageLibraryAsync({
-                mediaTypes: ImagePicker.MediaTypeOptions.Images,
-                allowsEditing: true,
-                aspect: [4, 3],
-                quality: 0.7,
-            });
-            if (!result.canceled) {
-                if (type === 'aadhaar') setAadhaarImg(result.assets[0]);
-                else setPanImg(result.assets[0]);
-            }
+            pickImageWeb(type);
         } else {
             Alert.alert(
                 'Upload Photo',
@@ -99,8 +103,13 @@ const KYCUploadScreen = ({ navigation }) => {
             return;
         }
 
-        if (aadhaarNum.length !== 12) {
-            Alert.alert('Error', 'Aadhaar must be 12 digits');
+        if (aadhaarNum.length !== 12 || /^(.)\1{11}$/.test(aadhaarNum)) {
+            Alert.alert('Error', 'Please enter a valid 12-digit Aadhaar number');
+            return;
+        }
+
+        if (!/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/.test(panNum)) {
+            Alert.alert('Error', 'Please enter a valid PAN format (e.g. ABCDE1234F)');
             return;
         }
 
@@ -109,17 +118,35 @@ const KYCUploadScreen = ({ navigation }) => {
         formData.append('aadhaar_number', aadhaarNum);
         formData.append('pan_number', panNum);
 
-        formData.append('aadhaar_image', {
-            uri: aadhaarImg.uri,
-            name: 'aadhaar.jpg',
-            type: 'image/jpeg',
-        });
-
-        formData.append('pan_image', {
-            uri: panImg.uri,
-            name: 'pan.jpg',
-            type: 'image/jpeg',
-        });
+        if (Platform.OS === 'web') {
+            // Web: use actual File objects
+            if (aadhaarImg._webFile) {
+                formData.append('aadhaar_image', aadhaarImg._webFile, aadhaarImg._webFile.name);
+            } else {
+                const res = await fetch(aadhaarImg.uri);
+                const blob = await res.blob();
+                formData.append('aadhaar_image', new File([blob], 'aadhaar.jpg', { type: blob.type }));
+            }
+            if (panImg._webFile) {
+                formData.append('pan_image', panImg._webFile, panImg._webFile.name);
+            } else {
+                const res = await fetch(panImg.uri);
+                const blob = await res.blob();
+                formData.append('pan_image', new File([blob], 'pan.jpg', { type: blob.type }));
+            }
+        } else {
+            // Native: use { uri, name, type } pattern
+            formData.append('aadhaar_image', {
+                uri: aadhaarImg.uri,
+                name: 'aadhaar.jpg',
+                type: 'image/jpeg',
+            });
+            formData.append('pan_image', {
+                uri: panImg.uri,
+                name: 'pan.jpg',
+                type: 'image/jpeg',
+            });
+        }
 
         try {
             await apiClient.post('/kyc/submit', formData, {
@@ -183,7 +210,7 @@ const KYCUploadScreen = ({ navigation }) => {
                     placeholder="1234 5678 9012"
                     placeholderTextColor="#999"
                     value={aadhaarNum}
-                    onChangeText={setAadhaarNum}
+                    onChangeText={(v) => setAadhaarNum(v.replace(/[^0-9]/g, ''))}
                     keyboardType="numeric"
                     maxLength={12}
                 />
@@ -207,7 +234,7 @@ const KYCUploadScreen = ({ navigation }) => {
                     placeholder="ABCDE1234F"
                     placeholderTextColor="#999"
                     value={panNum}
-                    onChangeText={setPanNum}
+                    onChangeText={(v) => setPanNum(v.toUpperCase())}
                     autoCapitalize="characters"
                     maxLength={10}
                 />
@@ -236,7 +263,7 @@ const KYCUploadScreen = ({ navigation }) => {
 };
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: COLORS.background },
+    container: { flex: 1, backgroundColor: 'transparent' },
     scrollContent: { padding: 20, paddingBottom: 40 },
     centered: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 40, backgroundColor: '#fff' },
     header: { alignItems: 'center', marginBottom: 30 },

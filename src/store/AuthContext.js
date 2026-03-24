@@ -6,6 +6,7 @@ const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
     const [user, setUser] = useState(null);
+    const [profile, setProfile] = useState(null);
     const [token, setToken] = useState(null);
     const [loading, setLoading] = useState(true);
     const [isAdmin, setIsAdmin] = useState(false);
@@ -55,11 +56,17 @@ export const AuthProvider = ({ children }) => {
         delete apiClient.defaults.headers.common['x-auth-token'];
         setToken(null);
         setUser(null);
+        setProfile(null);
         setIsAdmin(false);
     };
 
+    const updateActiveStatus = async (status) => {
+        await AsyncStorage.setItem('isActive', status.toString());
+        setUser(prev => prev ? ({ ...prev, isActive: status }) : null);
+    };
+
     return (
-        <AuthContext.Provider value={{ user, token, login, logout, loading, isAdmin }}>
+        <AuthContext.Provider value={{ user, profile, setProfile, token, login, logout, updateActiveStatus, loading, isAdmin }}>
             {children}
         </AuthContext.Provider>
     );

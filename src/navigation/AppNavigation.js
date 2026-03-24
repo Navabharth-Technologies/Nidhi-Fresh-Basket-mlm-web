@@ -2,10 +2,10 @@ import React from 'react';
 import { NavigationContainer, DefaultTheme } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createDrawerNavigator } from '@react-navigation/drawer';
-import { View, Image, Text, ImageBackground } from 'react-native';
+import { View, Image, Text, TouchableOpacity, Platform, Alert } from 'react-native';
 import { useAuth } from '../store/AuthContext';
 import { COLORS } from '../theme/theme';
-import { LayoutDashboard, Wallet, Network, Package, User, LogIn } from 'lucide-react-native';
+import { LayoutDashboard, Wallet, Network, Package, User, LogIn, Power } from 'lucide-react-native';
 
 // Screens
 import LoginScreen from '../screens/LoginScreen';
@@ -26,98 +26,43 @@ import KYCReviewScreen from '../screens/KYCReviewScreen';
 import AdminWithdrawRequestsScreen from '../screens/AdminWithdrawRequestsScreen';
 import KYCVerificationScreen from '../screens/KYCVerificationScreen';
 import WithdrawRequestScreen from '../screens/WithdrawRequestScreen';
-import WithdrawHistoryScreen from '../screens/WithdrawHistoryScreen';
-import InfoScreen from '../screens/InfoScreen';
+// Remove unused import: WithdrawHistoryScreen
+// Removed InfoScreen import
+import TermsScreen from '../screens/TermsScreen';
+import PrivacyScreen from '../screens/PrivacyScreen';
+import SupportScreen from '../screens/SupportScreen';
+import AboutScreen from '../screens/AboutScreen';
 
 const Stack = createNativeStackNavigator();
 const Drawer = createDrawerNavigator();
 
+import CustomDrawerContent from '../components/CustomDrawerContent';
+
 const UserDrawer = () => {
-    const { user, isAdmin } = useAuth();
-    const isTrusted = isAdmin || user?.isActive;
+    const { user, isAdmin, profile } = useAuth();
+    const isTrusted = isAdmin || (profile?.kyc_status?.toLowerCase() === 'approved') || profile?.is_active;
 
     return (
         <Drawer.Navigator
+            drawerContent={(props) => <CustomDrawerContent {...props} />}
             screenOptions={{
-                swipeEnabled: isTrusted, // Disable swipe for new users
-                headerLeft: isTrusted ? undefined : () => null, // Hide hamburger if not trusted
-                drawerActiveTintColor: '#333',
-            drawerInactiveTintColor: '#666',
-            drawerStyle: {
-                backgroundColor: '#fff',
-                width: 280,
-            },
-            headerStyle: {
-                backgroundColor: '#fff',
-                elevation: 0,
-                shadowOpacity: 0,
-                borderBottomWidth: 1,
-                borderBottomColor: '#eee',
-            },
-            headerTintColor: '#1a531b',
-            headerTitleStyle: {
-                fontWeight: 'bold',
-            },
-            drawerLabelStyle: {
-                fontWeight: '500',
-                fontSize: 15,
-            },
-            drawerItemStyle: {
-                borderRadius: 12,
-                marginVertical: 4,
-                marginHorizontal: 12,
-            }
+                swipeEnabled: isTrusted,
+                headerShown: false, // Use MainHeader in screens instead
+                drawerStyle: {
+                    backgroundColor: '#fff',
+                    width: 260,
+                    boxShadow: '0 0 20px rgba(0,0,0,0.1)', // for web
+                    elevation: 10, // for android
+                },
+                overlayColor: 'rgba(0,0,0,0.4)',
+                drawerType: 'front',
             }}
         >
-            <Drawer.Screen 
-                name="Dashboard" 
-                component={DashboardScreen} 
-                options={{ 
-                    headerShown: false,
-                    drawerIcon: ({ color, size, focused }) => <LayoutDashboard color={focused ? '#3b82f6' : color} size={size} />,
-                    drawerActiveBackgroundColor: '#e0f2fe',
-                    drawerActiveTintColor: '#1e40af'
-                }} 
-            />
-            <Drawer.Screen 
-                name="Wallet" 
-                component={WalletScreen} 
-                options={{
-                    drawerIcon: ({ color, size, focused }) => <Wallet color={focused ? '#f97316' : color} size={size} />,
-                    drawerActiveBackgroundColor: '#ffedd5',
-                    drawerActiveTintColor: '#9a3412',
-                    drawerItemStyle: isTrusted ? {} : { display: 'none' } // Hide link if not trusted
-                }}
-            />
-            <Drawer.Screen 
-                name="Network" 
-                component={NetworkScreen} 
-                options={{
-                    drawerIcon: ({ color, size, focused }) => <Network color={focused ? '#10b981' : color} size={size} />,
-                    drawerActiveBackgroundColor: '#dcfce7',
-                    drawerActiveTintColor: '#166534',
-                    drawerItemStyle: isTrusted ? {} : { display: 'none' }
-                }}
-            />
-            <Drawer.Screen 
-                name="Packages" 
-                component={PackageScreen} 
-                options={{
-                    drawerIcon: ({ color, size, focused }) => <Package color={focused ? '#8b5cf6' : color} size={size} />,
-                    drawerActiveBackgroundColor: '#f3e8ff',
-                    drawerActiveTintColor: '#5b21b6',
-                    drawerItemStyle: isTrusted ? {} : { display: 'none' }
-                }}
-            />
-            <Drawer.Screen 
-                name="Profile" 
-                component={ProfileScreen} 
-                options={{
-                    drawerIcon: ({ color, size, focused }) => <User color={focused ? '#06b6d4' : color} size={size} />,
-                    drawerActiveBackgroundColor: '#e0f7f9',
-                    drawerActiveTintColor: '#155e75'
-                }}
-            />
+            <Drawer.Screen name="Dashboard" component={DashboardScreen} />
+            <Drawer.Screen name="Wallet" component={WalletScreen} />
+            <Drawer.Screen name="Network" component={NetworkScreen} />
+            <Drawer.Screen name="Packages" component={PackageScreen} />
+            <Drawer.Screen name="Profile" component={ProfileScreen} />
         </Drawer.Navigator>
     );
 };
@@ -143,12 +88,16 @@ const linking = {
             PackageSelection: 'select-package',
             Payment: 'payment',
             KYCVerification: 'kyc',
+            TermsAndConditions: 'terms-and-conditions',
+            PrivacyPolicy: 'privacy-policy',
+            HelpSupport: 'help-support',
+            AboutUs: 'about-us',
         },
     },
 };
 
 const AppNavigation = () => {
-    const { user, loading, isAdmin } = useAuth();
+    const { user, loading, isAdmin, logout } = useAuth();
 
     if (loading) return null;
 
@@ -161,52 +110,127 @@ const AppNavigation = () => {
     };
 
     return (
-        <ImageBackground source={require('../../assets/app_bg.png')} style={{ flex: 1 }}>
-            <NavigationContainer theme={MyTheme} linking={linking}>
-                <Stack.Navigator screenOptions={{ headerShown: false, contentStyle: { backgroundColor: 'transparent' } }}>
+        <NavigationContainer theme={MyTheme} linking={linking}>
+            <Stack.Navigator screenOptions={{ headerShown: false, contentStyle: { backgroundColor: 'transparent' } }}>
                 {!user ? (
                     <>
                         <Stack.Screen name="Login" component={LoginScreen} />
                         <Stack.Screen name="Register" component={RegisterScreen} />
                         <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
                         <Stack.Screen name="ResetPassword" component={ResetPasswordScreen} />
-                        <Stack.Screen name="Info" component={InfoScreen} />
+
                     </>
                 ) : isAdmin ? (
                     <>
-                        <Stack.Screen 
-                            name="AdminHome" 
-                            component={AdminKYCListScreen} 
-                            options={{ 
-                                headerShown: true, 
+                        <Stack.Screen
+                            name="AdminHome"
+                            component={AdminKYCListScreen}
+                            options={{
+                                headerShown: true,
                                 headerTitle: () => (
                                     <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                                        <Image 
-                                            source={require('../../assets/nidhi_logo.png')} 
-                                            style={{ width: 140, height: 40, marginRight: -20, marginLeft: -25 }} 
-                                            resizeMode="contain" 
+                                        <Image
+                                            source={require('../../assets/nidhi_logo.png')}
+                                            style={{ width: 180, height: 60, marginRight: -40, marginLeft: -25 }}
+                                            resizeMode="contain"
                                         />
-                                        <Text style={{ fontSize: 18, fontWeight: 'bold', color: '#1a531b' }}>Approval Dashboard</Text>
+                                        <View style={{ marginLeft: 0 }}>
+                                            <Text style={{ fontSize: 18, fontWeight: 'bold', color: '#1a531b', lineHeight: 22 }}>Admin Panel</Text>
+                                            <Text style={{ fontSize: 12, color: '#666', lineHeight: 14 }}>Manage Approvals</Text>
+                                        </View>
                                     </View>
+                                ),
+                                headerRight: () => (
+                                    <TouchableOpacity 
+                                        onPress={() => {
+                                            const msg = 'Are you sure you want to logout?';
+                                            if (Platform.OS === 'web') {
+                                                if (window.confirm(msg)) logout();
+                                            } else {
+                                                Alert.alert('Logout', msg, [
+                                                    { text: 'Cancel', style: 'cancel' },
+                                                    { text: 'Logout', style: 'destructive', onPress: logout }
+                                                ]);
+                                            }
+                                        }}
+                                        style={{ marginRight: 15, padding: 8, backgroundColor: '#fef2f2', borderRadius: 10 }}
+                                    >
+                                        <Power color="#DC2626" size={20} />
+                                    </TouchableOpacity>
+                                )
+                            }}
+                        />
+                        <Stack.Screen 
+                            name="KYCReview" 
+                            component={KYCReviewScreen} 
+                            options={{ 
+                                headerShown: true, 
+                                headerTitle: 'Review KYC',
+                                headerTintColor: '#1a531b',
+                                headerRight: () => (
+                                    <TouchableOpacity 
+                                        onPress={() => {
+                                            const msg = 'Are you sure you want to logout?';
+                                            if (Platform.OS === 'web') {
+                                                if (window.confirm(msg)) logout();
+                                            } else {
+                                                Alert.alert('Logout', msg, [
+                                                    { text: 'Cancel', style: 'cancel' },
+                                                    { text: 'Logout', style: 'destructive', onPress: logout }
+                                                ]);
+                                            }
+                                        }}
+                                        style={{ marginRight: 15, padding: 8, backgroundColor: '#fef2f2', borderRadius: 10 }}
+                                    >
+                                        <Power color="#DC2626" size={20} />
+                                    </TouchableOpacity>
                                 )
                             }} 
                         />
-                        <Stack.Screen name="KYCReview" component={KYCReviewScreen} options={{ headerShown: true, title: 'Review KYC' }} />
-                        <Stack.Screen name="AdminWithdrawals" component={AdminWithdrawRequestsScreen} options={{ headerShown: true, title: 'Withdraw Requests' }} />
+                        <Stack.Screen 
+                            name="AdminWithdrawals" 
+                            component={AdminWithdrawRequestsScreen} 
+                            options={{ 
+                                headerShown: true, 
+                                headerTitle: 'Withdraw Requests',
+                                headerTintColor: '#1a531b',
+                                headerRight: () => (
+                                    <TouchableOpacity 
+                                        onPress={() => {
+                                            const msg = 'Are you sure you want to logout?';
+                                            if (Platform.OS === 'web') {
+                                                if (window.confirm(msg)) logout();
+                                            } else {
+                                                Alert.alert('Logout', msg, [
+                                                    { text: 'Cancel', style: 'cancel' },
+                                                    { text: 'Logout', style: 'destructive', onPress: logout }
+                                                ]);
+                                            }
+                                        }}
+                                        style={{ marginRight: 15, padding: 8, backgroundColor: '#fef2f2', borderRadius: 10 }}
+                                    >
+                                        <Power color="#DC2626" size={20} />
+                                    </TouchableOpacity>
+                                )
+                            }} 
+                        />
                     </>
                 ) : (
                     <>
                         <Stack.Screen name="Main" component={UserDrawer} />
                         <Stack.Screen name="PackageSelection" component={PackageSelectionScreen} />
-                        <Stack.Screen name="Payment" component={PaymentScreen} />
-                        <Stack.Screen name="KYCVerification" component={KYCVerificationScreen} />
-                        <Stack.Screen name="WithdrawRequest" component={WithdrawRequestScreen} options={{ headerShown: true, title: 'Withdraw Funds' }} />
-                        <Stack.Screen name="WithdrawHistory" component={WithdrawHistoryScreen} options={{ headerShown: true, title: 'Withdrawal History' }} />
+                        <Stack.Screen name="Payment" component={PaymentScreen} options={{ headerShown: false }} />
+                        <Stack.Screen name="KYCVerification" component={KYCVerificationScreen} options={{ headerShown: false }} />
+                        <Stack.Screen name="WithdrawRequest" component={WithdrawRequestScreen} options={{ headerShown: false }} />
+
+                        <Stack.Screen name="TermsAndConditions" component={TermsScreen} options={{ headerShown: false }} />
+                        <Stack.Screen name="PrivacyPolicy" component={PrivacyScreen} options={{ headerShown: false }} />
+                        <Stack.Screen name="HelpSupport" component={SupportScreen} options={{ headerShown: false }} />
+                        <Stack.Screen name="AboutUs" component={AboutScreen} options={{ headerShown: false }} />
                     </>
                 )}
             </Stack.Navigator>
         </NavigationContainer>
-        </ImageBackground>
     );
 };
 

@@ -4,6 +4,7 @@ import { COLORS, SPACING, SIZES } from '../theme/theme';
 import apiClient from '../api/client';
 import { CheckCircle2, ChevronRight, Crown, Shield, Star, LogOut } from 'lucide-react-native';
 import { useAuth } from '../store/AuthContext';
+import ScreenBackground from '../components/ScreenBackground';
 
 const PackageSelectionScreen = ({ navigation }) => {
     const { width } = useWindowDimensions();
@@ -58,60 +59,62 @@ const PackageSelectionScreen = ({ navigation }) => {
     const { logout } = useAuth();
 
     return (
-        <ScrollView style={styles.container} contentContainerStyle={[styles.scrollContent, isDesktop && styles.scrollContentDesktop]}>
-            <View style={[styles.header, isDesktop && styles.headerDesktop]}>
-                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <Text style={styles.title}>Choose Your Plan</Text>
-                    <TouchableOpacity onPress={logout} style={{ padding: 10 }}>
-                        <LogOut color="#dc3545" size={24} />
-                    </TouchableOpacity>
+        <ScreenBackground subtle>
+            <ScrollView style={styles.container} contentContainerStyle={[styles.scrollContent, isDesktop && styles.scrollContentDesktop]}>
+                <View style={[styles.header, isDesktop && styles.headerDesktop]}>
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <Text style={styles.title}>Choose Your Plan</Text>
+                        <TouchableOpacity onPress={logout} style={{ padding: 10 }}>
+                            <LogOut color="#dc3545" size={24} />
+                        </TouchableOpacity>
+                    </View>
+                    <Text style={styles.subtitle}>Unlock your dashboard and start earning today.</Text>
                 </View>
-                <Text style={styles.subtitle}>Unlock your dashboard and start earning today.</Text>
-            </View>
- 
-            <View style={[styles.packagesGrid, isDesktop && styles.packagesGridDesktop]}>
-
-            {packages.map((pkg) => (
-                <TouchableOpacity
-                    key={pkg.id}
-                    style={styles.card}
-                    onPress={() => handleSelect(pkg)}
-                    activeOpacity={0.8}
-                >
-                    <View style={styles.iconContainer}>
-                        {getIcon(pkg.name)}
-                    </View>
-                    <View style={styles.cardContent}>
-                        <Text style={styles.packageName}>{pkg.name} Package</Text>
-                        <Text style={styles.packagePrice}>₹{pkg.price}</Text>
-                        <View style={styles.featureRow}>
-                            <CheckCircle2 size={16} color="#217323" />
-                            <Text style={styles.featureText}>₹{pkg.monthly_coupon} Monthly Coupon</Text>
+    
+                <View style={[styles.packagesGrid, isDesktop && styles.packagesGridDesktop]}>
+    
+                {packages.map((pkg) => (
+                    <TouchableOpacity
+                        key={pkg.id}
+                        style={styles.card}
+                        onPress={() => handleSelect(pkg)}
+                        activeOpacity={0.8}
+                    >
+                        <View style={styles.iconContainer}>
+                            {getIcon(pkg.name)}
                         </View>
-                        <View style={styles.featureRow}>
-                            <CheckCircle2 size={16} color="#217323" />
-                            <Text style={styles.featureText}>{pkg.duration_months} Months Duration</Text>
+                        <View style={styles.cardContent}>
+                            <Text style={styles.packageName}>{pkg.name} Package</Text>
+                            <Text style={styles.packagePrice}>₹{pkg.price}</Text>
+                            <View style={styles.featureRow}>
+                                <CheckCircle2 size={16} color="#217323" />
+                                <Text style={styles.featureText}>₹{pkg.monthly_coupon} Monthly Coupon</Text>
+                            </View>
+                            <View style={styles.featureRow}>
+                                <CheckCircle2 size={16} color="#217323" />
+                                <Text style={styles.featureText}>{pkg.duration_months} Months Duration</Text>
+                            </View>
+                            <View style={styles.featureRow}>
+                                <CheckCircle2 size={16} color="#217323" />
+                                <Text style={styles.featureText}>Full Dashboard Access</Text>
+                            </View>
                         </View>
-                        <View style={styles.featureRow}>
-                            <CheckCircle2 size={16} color="#217323" />
-                            <Text style={styles.featureText}>Full Dashboard Access</Text>
-                        </View>
-                    </View>
-                    <ChevronRight color="#ccc" size={24} />
-                </TouchableOpacity>
-            ))}
-            </View>
-
-            <View style={[styles.footer, isDesktop && styles.footerDesktop]}>
-                <Text style={styles.infoText}>* All coupons are generated automatically after payment.</Text>
-                <Text style={styles.infoText}>* Commissions represent earnings from your network.</Text>
-            </View>
-        </ScrollView>
+                        <ChevronRight color="#ccc" size={24} />
+                    </TouchableOpacity>
+                ))}
+                </View>
+    
+                <View style={[styles.footer, isDesktop && styles.footerDesktop]}>
+                    <Text style={styles.infoText}>* All coupons are generated automatically after payment.</Text>
+                    <Text style={styles.infoText}>* Commissions represent earnings from your network.</Text>
+                </View>
+            </ScrollView>
+        </ScreenBackground>
     );
 };
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: '#f8f9fa' },
+    container: { flex: 1, backgroundColor: 'transparent' },
     scrollContent: { padding: 20, paddingBottom: 40 },
     scrollContentDesktop: {
         alignItems: 'center',
@@ -122,7 +125,7 @@ const styles = StyleSheet.create({
     title: { fontSize: 32, fontWeight: 'bold', color: '#1a531b', marginBottom: 8 },
     subtitle: { fontSize: 18, color: '#666' },
     card: {
-        backgroundColor: '#fff',
+        backgroundColor: 'rgba(255, 255, 255, 0.75)',
         borderRadius: 16,
         padding: 20,
         marginBottom: 16,
@@ -160,7 +163,7 @@ const styles = StyleSheet.create({
         maxWidth: 1200,
     },
     card: {
-        backgroundColor: '#fff',
+        backgroundColor: 'rgba(255, 255, 255, 0.75)',
         borderRadius: 16,
         padding: 20,
         marginBottom: 16,

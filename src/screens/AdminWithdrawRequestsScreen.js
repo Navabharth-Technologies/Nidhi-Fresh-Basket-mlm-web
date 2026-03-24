@@ -6,6 +6,8 @@ import {
 } from 'react-native';
 import { COLORS, SPACING, SIZES } from '../theme/theme';
 import apiClient from '../api/client';
+import { useAuth } from '../store/AuthContext';
+import ScreenBackground from '../components/ScreenBackground';
 import { Landmark, User, Check, X, Wallet, Clock } from 'lucide-react-native';
 import { Platform } from 'react-native';
 
@@ -28,7 +30,21 @@ const AdminWithdrawRequestsScreen = () => {
     const fetchRequests = async () => {
         try {
             const res = await apiClient.get('/withdraw/admin/requests');
-            setRequests(res.data);
+            const sortedData = [...res.data].sort((a, b) => {
+                const statusA = (a.status || 'pending').toLowerCase();
+                const statusB = (b.status || 'pending').toLowerCase();
+                
+                const getPriority = (s) => {
+                    if (s === 'pending') return 0;
+                    if (s === 'processing') return 1;
+                    if (s === 'rejected') return 2;
+                    if (s === 'approved') return 3;
+                    return 4;
+                };
+                
+                return getPriority(statusA) - getPriority(statusB);
+            });
+            setRequests(sortedData);
         } catch (e) {
             console.error('Fetch requests failed:', e.message);
             showAlert('Error', 'Failed to fetch withdrawal requests');
@@ -87,8 +103,8 @@ const AdminWithdrawRequestsScreen = () => {
             <View style={styles.card}>
                 <View style={styles.cardHeader}>
                     <View>
-                        <Text style={styles.userName}>{item.name}</Text>
-                        <Text style={styles.userId}>User ID: {item.user_id}</Text>
+                        <Text style={styles.userName}>{item.user_full_name || item.name || 'No Name'}</Text>
+                        <Text style={styles.userId}>User ID: {item.nfb_userid || 'N/A'}</Text>
                     </View>
                     <Text style={styles.amount}>₹{item.amount}</Text>
                 </View>
@@ -200,13 +216,8 @@ const AdminWithdrawRequestsScreen = () => {
     );
 
     return (
-        <View style={styles.container}>
-            <View style={styles.header}>
-                <Landmark color={COLORS.secondary} size={32} />
-                <Text style={styles.title}>Withdraw Requests</Text>
-                <Text style={styles.subtitle}>Review and manage provider payouts</Text>
-            </View>
-
+        <ScreenBackground admin>
+            <View style={styles.container}>
             <FlatList
                 data={requests}
                 keyExtractor={(item) => `admin-withdraw-${item.id}`}
@@ -290,28 +301,25 @@ const AdminWithdrawRequestsScreen = () => {
                 </View>
             </Modal>
         </View>
+        </ScreenBackground>
     );
 };
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: COLORS.background },
-    header: { padding: SPACING.l, alignItems: 'center', backgroundColor: COLORS.surface, borderBottomWidth: 1, borderBottomColor: COLORS.border },
-    title: { fontSize: 22, fontWeight: 'bold', color: COLORS.text, marginTop: SPACING.s },
-    subtitle: { color: COLORS.textSecondary, fontSize: 13, marginTop: 4 },
-
+    container: { flex: 1, backgroundColor: 'transparent' },
     list: { padding: SPACING.m },
     card: {
-        backgroundColor: COLORS.surface,
+        backgroundColor: 'rgba(255, 255, 255, 0.85)',
         borderRadius: 16,
         padding: SPACING.m,
         marginBottom: SPACING.m,
         borderWidth: 1,
-        borderColor: COLORS.border,
-        elevation: 3,
+        borderColor: 'rgba(255, 255, 255, 0.3)',
+        elevation: 1,
         shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.05,
+        shadowRadius: 2
     },
     cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 },
     userName: { fontSize: 16, fontWeight: 'bold', color: COLORS.text },

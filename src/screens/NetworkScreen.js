@@ -1,50 +1,109 @@
 import React, { useState, useEffect } from 'react';
 import {
     StyleSheet, Text, View, FlatList, TouchableOpacity,
-    ActivityIndicator, ScrollView, RefreshControl
+    ActivityIndicator, ScrollView, RefreshControl, Platform, TextInput, Share
 } from 'react-native';
 import { COLORS, SPACING, SIZES } from '../theme/theme';
 import apiClient from '../api/client';
-import { Users, UserPlus, UserCheck, Clock } from 'lucide-react-native';
+import { Users, UserPlus, UserCheck, Clock, Search, ChevronRight, Share2, Award, TrendingUp, Filter, AlertCircle, Phone, Mail, Calendar, User } from 'lucide-react-native';
+import ScreenBackground from '../components/ScreenBackground';
+import MainHeader from '../components/MainHeader';
 
-const MemberCard = ({ member }) => {
+const GenealogyNode = ({ member, depth = 0, isLastChild = false }) => {
+    const [isExpanded, setIsExpanded] = useState(depth < 1); // Auto-expand level 1
+    const hasChildren = member.children && member.children.length > 0;
     const isApproved = member.kyc_status?.toLowerCase() === 'approved';
-    const isPending = member.kyc_status?.toLowerCase() === 'pending';
 
     return (
-        <View style={styles.memberCard}>
-            <View style={[styles.memberAvatar, { backgroundColor: isApproved ? COLORS.success + '20' : COLORS.warning + '20' }]}>
-                {isApproved
-                    ? <UserCheck color={COLORS.success} size={20} />
-                    : <UserPlus color={COLORS.warning} size={20} />
-                }
+        <View style={styles.horizontalNodeRow}>
+            {/* The Node Card */}
+            <View style={styles.nodeContainer}>
+                {/* Visual Connector from Parent */}
+                {depth > 0 && <View style={styles.horizontalLineFromParent} />}
+                
+                <TouchableOpacity 
+                    activeOpacity={0.8}
+                    onPress={() => hasChildren && setIsExpanded(!isExpanded)}
+                    style={[
+                        styles.horizontalNodeCard,
+                        isExpanded && styles.horizontalNodeCardExpanded,
+                        !isApproved && { borderLeftColor: COLORS.warning }
+                    ]}
+                >
+                    <View style={[styles.horizontalNodeAvatar, { backgroundColor: isApproved ? COLORS.success + '15' : COLORS.warning + '15' }]}>
+                        {isApproved ? <UserCheck size={14} color={COLORS.success} /> : <UserPlus size={14} color={COLORS.warning} />}
+                    </View>
+
+                    <View style={styles.nodeMainInfo}>
+                        <Text style={styles.nodeName} numberOfLines={1}>{member.full_name}</Text>
+                        <Text style={styles.nodeId}>{member.userid}</Text>
+                    </View>
+
+                    <View style={styles.nodeLevelBadge}>
+                        <Text style={styles.nodeLevelText}>L{member.level || depth + 1}</Text>
+                    </View>
+
+                    {hasChildren && (
+                        <View style={[styles.expandIndicator, isExpanded && styles.expandIndicatorActive]}>
+                            <ChevronRight 
+                                size={12} 
+                                color={isExpanded ? '#fff' : COLORS.textSecondary} 
+                                style={{ transform: [{ rotate: isExpanded ? '90deg' : '0deg' }] }}
+                            />
+                        </View>
+                    )}
+                </TouchableOpacity>
+
+                {/* Connector to children (if expanded and has children) */}
+                {isExpanded && hasChildren && <View style={styles.horizontalLineToChildren} />}
             </View>
-            <View style={styles.memberInfo}>
-                <Text style={styles.memberName} numberOfLines={1}>{member.full_name}</Text>
-                <Text style={styles.memberId}>{member.userid}</Text>
-            </View>
-            <View style={[styles.statusBadge, isApproved ? styles.badgeApproved : isPending ? styles.badgePending : styles.badgeNone]}>
-                <Text style={[styles.statusText, isApproved ? styles.textApproved : isPending ? styles.textPending : styles.textNone]}>
-                    {member.kyc_status || 'No KYC'}
-                </Text>
-            </View>
+
+            {/* The Children (Next Column) */}
+            {isExpanded && hasChildren && (
+                <View style={styles.childrenColumn}>
+                    <View style={styles.childrenVerticalStem} />
+                    {member.children.map((child, index) => (
+                        <GenealogyNode 
+                            key={child.id} 
+                            member={child} 
+                            depth={depth + 1} 
+                            isLastChild={index === member.children.length - 1}
+                        />
+                    ))}
+                </View>
+            )}
         </View>
     );
 };
 
-const NetworkScreen = () => {
+const NetworkScreen = ({ navigation }) => {
     const [levels, setLevels] = useState(Array.from({ length: 15 }, (_, i) => ({ level: i + 1, count: 0 })));
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
     const [selectedLevel, setSelectedLevel] = useState(1);
     const [allMembers, setAllMembers] = useState({});
+    const [profile, setProfile] = useState(null);
+
+    // New states for the updated UI
+    const [stats, setStats] = useState({ total_team: 0 });
+    const [searchQuery, setSearchQuery] = useState('');
+    const [activeTab, setActiveTab] = useState('all'); // 'all', 'active', 'inactive'
+    const isDesktop = Platform.OS === 'web'; // Example for desktop detection
 
     const fetchNetwork = async () => {
         try {
-            const res = await apiClient.get('/users/network');
-            if (res.data) {
-                setLevels(res.data.levels || []);
-                setAllMembers(res.data.members || {});
+            const [networkRes, profileRes] = await Promise.all([
+                apiClient.get('/users/network'),
+                apiClient.get('/users/profile')
+            ]);
+
+            if (networkRes.data) {
+                setLevels(networkRes.data.levels || []);
+                setAllMembers(networkRes.data.members || {});
+                setStats({ total_team: networkRes.data.total_downline_members || 0 }); // Assuming total_downline_members is available
+            }
+            if (profileRes.data) {
+                setProfile(profileRes.data);
             }
         } catch (e) {
             console.error('Network fetch failed:', e.message);
@@ -58,6 +117,26 @@ const NetworkScreen = () => {
         fetchNetwork();
     }, []);
 
+    const hierarchy = React.useMemo(() => {
+        if (!profile || !allMembers[1]) return [];
+        
+        const allFlatMembers = Object.values(allMembers).flat();
+        const memberMap = {};
+        allFlatMembers.forEach(m => {
+            memberMap[m.id] = { ...m, children: [] };
+        });
+
+        const roots = [];
+        allFlatMembers.forEach(m => {
+            if (m.sponsor_id === profile.id) {
+                roots.push(memberMap[m.id]);
+            } else if (memberMap[m.sponsor_id]) {
+                memberMap[m.sponsor_id].children.push(memberMap[m.id]);
+            }
+        });
+        return roots;
+    }, [allMembers, profile]);
+
     const onRefresh = () => {
         setRefreshing(true);
         fetchNetwork();
@@ -66,6 +145,62 @@ const NetworkScreen = () => {
     const currentMembers = allMembers[selectedLevel] || [];
     const totalDownline = levels.reduce((sum, l) => sum + l.count, 0);
 
+    // Filtering logic for the new UI
+    const filteredMembers = currentMembers.filter(member => {
+        const matchesSearch = member.full_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            member.userid.toLowerCase().includes(searchQuery.toLowerCase());
+
+        let matchesTab = true;
+        if (activeTab === 'active') {
+            matchesTab = member.kyc_status?.toLowerCase() === 'approved';
+        } else if (activeTab === 'inactive') {
+            matchesTab = member.kyc_status?.toLowerCase() !== 'approved';
+        }
+        return matchesSearch && matchesTab;
+    });
+
+    const BASE_URL = 'https://nidhifreshbasket.in';
+
+    const handleCopyLink = () => {
+        const referralUrl = `${BASE_URL}/register?ref=${profile?.referral_code || ''}`;
+
+        if (Platform.OS === 'web') {
+            navigator.clipboard.writeText(referralUrl)
+                .then(() => alert('Referral link copied to clipboard!'))
+                .catch(err => console.error('Failed to copy link:', err));
+        } else {
+            Share.share({
+                message: `Join me on Nidhi Fresh Basket: ${referralUrl}`,
+                url: referralUrl
+            });
+        }
+    };
+
+    const handleCopyCode = () => {
+        const code = profile?.referral_code || '';
+        if (Platform.OS === 'web') {
+            navigator.clipboard.writeText(code)
+                .then(() => alert('Referral code copied!'))
+                .catch(err => console.error('Failed to copy code:', err));
+        } else {
+            Share.share({ message: `My referral code: ${code}` });
+        }
+    };
+
+    const handleShareLink = async () => {
+        const referralUrl = `${BASE_URL}/register?ref=${profile?.referral_code || ''}`;
+
+        try {
+            await Share.share({
+                title: 'Nidhi Fresh Basket Referral',
+                message: `Join me on Nidhi Fresh Basket and grow your network! Register here: ${referralUrl}`,
+                url: referralUrl
+            });
+        } catch (error) {
+            console.log('Share error:', error.message);
+        }
+    };
+
     if (loading) return (
         <View style={styles.center}>
             <ActivityIndicator color={COLORS.secondary} size="large" />
@@ -73,163 +208,461 @@ const NetworkScreen = () => {
         </View>
     );
 
-    return (
-        <View style={styles.container}>
-            {/* Header */}
-            <View style={styles.header}>
-                <Users color={COLORS.secondary} size={32} />
-                <Text style={styles.title}>Your Downline</Text>
-                <Text style={styles.subtitle}>Track your 15-level network growth</Text>
-                <View style={styles.totalBadge}>
-                    <Text style={styles.totalText}>{totalDownline} Total Members</Text>
-                </View>
-            </View>
+    const referralUrl = `${BASE_URL}/register?ref=${profile?.referral_code || ''}`;
 
-            <ScrollView
-                style={{ flex: 1 }}
-                refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={COLORS.secondary} />}
-            >
-                {/* Level Tab Bar */}
-                <ScrollView
-                    horizontal
-                    showsHorizontalScrollIndicator={false}
-                    contentContainerStyle={styles.levelList}
-                    style={styles.levelBar}
-                >
-                    {levels.map(item => (
-                        <TouchableOpacity
-                            key={item.level.toString()}
-                            style={[styles.levelItem, selectedLevel === item.level && styles.selectedLevel]}
-                            onPress={() => setSelectedLevel(item.level)}
-                        >
-                            <Text style={[styles.levelText, selectedLevel === item.level && styles.selectedLevelText]}>
-                                Level {item.level}
-                            </Text>
-                            <View style={[styles.countBadge, item.count > 0 && selectedLevel !== item.level && styles.countBadgeActive]}>
-                                <Text style={[styles.countText, item.count > 0 && selectedLevel !== item.level && styles.countTextActive]}>
-                                    {item.count}
-                                </Text>
+    return (
+        <ScreenBackground>
+            <View style={styles.container}>
+                <MainHeader title="Level Management" navigation={navigation} hideProfile={true} />
+                {/* Header Section */}
+                <View style={[styles.header, isDesktop && styles.headerDesktop]}>
+                    <View style={styles.headerTop}>
+                        <View style={{ flex: 1 }}>
+                            <Text style={styles.headerTitle}>Total Partners: {totalDownline}</Text>
+                        </View>
+                    </View>
+
+                    <View style={styles.searchBar}>
+                        <Search size={18} color="#64748b" />
+                        <TextInput
+                            style={styles.searchInput}
+                            placeholder="Search by ID or Name..."
+                            value={searchQuery}
+                            onChangeText={setSearchQuery}
+                        />
+                    </View>
+                </View>
+
+                {/* Referral Link Section (Fixed at top) */}
+                <View style={[styles.referralSection, isDesktop && { paddingHorizontal: SPACING.xl }]}>
+                    <Text style={styles.referralLabel}>Invite Partners & Grow Network</Text>
+                    <View style={styles.referralCodeRow}>
+                        <Text style={styles.referralCodeLabel}>Your Referral Code:</Text>
+                        <TouchableOpacity style={styles.referralCodeBadge} onPress={handleCopyCode}>
+                            <Text style={styles.referralCodeText}>{profile?.referral_code || '—'}</Text>
+                            <View style={styles.copyBadge}>
+                                <Text style={styles.copyBadgeText}>Copy</Text>
                             </View>
                         </TouchableOpacity>
-                    ))}
-                </ScrollView>
-
-                {/* Member List */}
-                <View style={styles.memberSection}>
-                    <Text style={styles.memberTitle}>
-                        Level {selectedLevel} Partners
-                        <Text style={styles.memberCount}> ({currentMembers.length})</Text>
-                    </Text>
-
-                    {currentMembers.length > 0 ? (
-                        currentMembers.map(member => (
-                            <MemberCard key={member.id.toString()} member={member} />
-                        ))
-                    ) : (
-                        <View style={styles.emptyState}>
-                            <UserPlus color={COLORS.textSecondary} size={48} />
-                            <Text style={styles.emptyTitle}>No members at Level {selectedLevel}</Text>
-                            <Text style={styles.emptyText}>Share your referral code to grow this level!</Text>
-                        </View>
-                    )}
+                    </View>
+                    <View style={styles.referralBox}>
+                        <Text style={styles.referralLink} numberOfLines={1}>{referralUrl}</Text>
+                        <TouchableOpacity style={styles.copyButton} onPress={handleCopyLink}>
+                            <Text style={styles.copyButtonText}>Copy</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity style={[styles.copyButton, styles.shareButton]} onPress={handleShareLink}>
+                            <Share2 size={16} color="#fff" />
+                        </TouchableOpacity>
+                    </View>
                 </View>
-            </ScrollView>
-        </View>
+
+                {/* Hierarchy Tree Area (Scrollable Only) */}
+                <ScrollView 
+                    style={styles.treeScroll}
+                    contentContainerStyle={styles.treeScrollContent}
+                    refreshControl={
+                        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={COLORS.secondary} />
+                    }
+                >
+                    <View style={styles.treeHeading}>
+                        <TrendingUp size={18} color={COLORS.secondary} />
+                        <Text style={styles.treeHeadingText}>Horizontal Genealogy Chart</Text>
+                    </View>
+
+                    <ScrollView horizontal showsHorizontalScrollIndicator={true} style={styles.horizontalScroll}>
+                        <View style={styles.horizontalTreeContainer}>
+                            {hierarchy.length > 0 ? (
+                                hierarchy.map((root, index) => (
+                                    <GenealogyNode key={root.id} member={root} depth={0} isLastChild={index === hierarchy.length - 1} />
+                                ))
+                            ) : (
+                                <View style={styles.emptyContainer}>
+                                    <Users size={40} color="#CBD5E1" />
+                                    <Text style={styles.emptyText}>No Network Found</Text>
+                                    <Text style={styles.emptySub}>Share your referral link to build your tree!</Text>
+                                </View>
+                            )}
+                        </View>
+                    </ScrollView>
+                </ScrollView>
+            </View>
+        </ScreenBackground>
     );
 };
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: COLORS.background },
+    container: { flex: 1, backgroundColor: 'transparent' },
     center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: COLORS.background },
     loadingText: { color: COLORS.textSecondary, marginTop: 12, fontSize: 14 },
 
     header: {
+        backgroundColor: 'transparent', // Changed to transparent
         padding: SPACING.l,
         alignItems: 'center',
-        backgroundColor: COLORS.surface,
         borderBottomWidth: 1,
         borderBottomColor: COLORS.border,
         paddingBottom: SPACING.m
     },
-    title: { fontSize: 22, color: COLORS.text, fontWeight: 'bold', marginTop: SPACING.s },
-    subtitle: { fontSize: 13, color: COLORS.textSecondary, marginTop: 4 },
-    totalBadge: {
-        marginTop: SPACING.s,
-        backgroundColor: COLORS.secondary + '18',
-        paddingHorizontal: 16,
-        paddingVertical: 6,
-        borderRadius: 20,
-        borderWidth: 1,
-        borderColor: COLORS.secondary + '30'
+    headerDesktop: {
+        paddingHorizontal: SPACING.xl,
+        paddingTop: SPACING.xl,
+        paddingBottom: SPACING.l,
     },
-    totalText: { color: COLORS.secondary, fontWeight: '700', fontSize: 13 },
-
-    levelBar: { borderBottomWidth: 1, borderBottomColor: COLORS.border },
-    levelList: { paddingHorizontal: SPACING.m, paddingVertical: SPACING.s },
-    levelItem: {
-        backgroundColor: COLORS.surface,
-        paddingHorizontal: 14,
-        paddingVertical: 8,
-        borderRadius: 20,
-        marginRight: 8,
+    headerTop: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        width: '100%',
+        marginBottom: SPACING.m,
+    },
+    headerTitle: {
+        fontSize: SIZES.h2,
+        color: COLORS.text,
+        fontWeight: 'bold',
+    },
+    headerSubtitle: {
+        fontSize: SIZES.font,
+        color: COLORS.textSecondary,
+        marginTop: SPACING.xs,
+    },
+    statsBadge: {
         flexDirection: 'row',
         alignItems: 'center',
-        borderWidth: 1,
-        borderColor: COLORS.border,
+        backgroundColor: '#D1FAE5', // Light green background
+        paddingHorizontal: SPACING.s,
+        paddingVertical: SPACING.xs,
+        borderRadius: SIZES.radius,
     },
-    selectedLevel: { backgroundColor: COLORS.secondary, borderColor: COLORS.secondary },
-    levelText: { color: COLORS.text, fontWeight: '600', marginRight: 6, fontSize: 13 },
-    selectedLevelText: { color: '#fff' },
-    countBadge: {
+    statsBadgeText: {
+        marginLeft: SPACING.xs,
+        color: '#166534', // Dark green text
+        fontWeight: '600',
+        fontSize: SIZES.font,
+    },
+    searchBar: {
+        flexDirection: 'row',
+        alignItems: 'center',
         backgroundColor: COLORS.background,
-        borderRadius: 10,
-        paddingHorizontal: 7,
-        paddingVertical: 2,
-        minWidth: 22,
-        alignItems: 'center'
+        borderRadius: SIZES.radius,
+        paddingHorizontal: SPACING.s,
+        paddingVertical: SPACING.xs,
+        borderWidth: 1,
+        borderColor: COLORS.border,
+        width: '100%',
+        marginBottom: SPACING.m,
     },
-    countBadgeActive: { backgroundColor: COLORS.secondary + '20' },
-    countText: { color: COLORS.textSecondary, fontSize: 11, fontWeight: 'bold' },
-    countTextActive: { color: COLORS.secondary },
-
-    memberSection: { padding: SPACING.m, paddingBottom: 40 },
-    memberTitle: { color: COLORS.text, fontSize: 17, fontWeight: 'bold', marginBottom: SPACING.m },
-    memberCount: { color: COLORS.textSecondary, fontSize: 14, fontWeight: '400' },
-
-    memberCard: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        backgroundColor: COLORS.surface,
-        padding: SPACING.m,
-        borderRadius: 12,
+    searchInput: {
+        flex: 1,
+        marginLeft: SPACING.s,
+        color: COLORS.text,
+        fontSize: SIZES.font,
+        paddingVertical: Platform.OS === 'web' ? 8 : 0, // Adjust for web input padding
+        outlineStyle: 'none', // Remove inner black border on web
+    },
+    filterTabs: {
+        width: '100%',
         marginBottom: SPACING.s,
+    },
+    filterTab: {
+        paddingHorizontal: SPACING.m,
+        paddingVertical: SPACING.s,
+        borderRadius: SIZES.radius,
+        marginRight: SPACING.s,
+        backgroundColor: COLORS.background,
         borderWidth: 1,
         borderColor: COLORS.border,
     },
-    memberAvatar: {
-        width: 40, height: 40, borderRadius: 20,
-        justifyContent: 'center', alignItems: 'center',
-        marginRight: SPACING.m
+    activeFilterTab: {
+        backgroundColor: COLORS.primary,
+        borderColor: COLORS.primary,
     },
-    memberInfo: { flex: 1 },
-    memberName: { color: COLORS.text, fontWeight: '600', fontSize: 14 },
-    memberId: { color: COLORS.textSecondary, fontSize: 12, marginTop: 2 },
-
-    statusBadge: {
-        paddingHorizontal: 10, paddingVertical: 4,
-        borderRadius: 12, borderWidth: 1
+    filterTabText: {
+        color: COLORS.textSecondary,
+        fontWeight: '600',
+        fontSize: SIZES.font,
     },
-    badgeApproved: { backgroundColor: COLORS.success + '15', borderColor: COLORS.success + '40' },
-    badgePending: { backgroundColor: '#FFA50015', borderColor: '#FFA50040' },
-    badgeNone: { backgroundColor: COLORS.border + '30', borderColor: COLORS.border },
-    statusText: { fontSize: 11, fontWeight: '600' },
-    textApproved: { color: COLORS.success },
-    textPending: { color: '#FFA500' },
-    textNone: { color: COLORS.textSecondary },
+    activeFilterTabText: {
+        color: COLORS.white,
+    },
+    listContent: {
+        paddingHorizontal: SPACING.m,
+        paddingBottom: SPACING.xl * 2, // Ensure enough space at the bottom
+    },
+    listContentDesktop: {
+        paddingHorizontal: SPACING.xl,
+    },
+    emptyContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        paddingVertical: SPACING.xl * 2,
+    },
+    emptyIconContainer: {
+        width: 80,
+        height: 80,
+        borderRadius: 40,
+        backgroundColor: '#f1f5f9',
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginBottom: 16,
+    },
+    emptyText: {
+        fontSize: 18,
+        color: COLORS.text,
+        fontWeight: 'bold',
+        marginBottom: 8,
+    },
+    emptySub: {
+        fontSize: 14,
+        color: COLORS.textSecondary,
+        textAlign: 'center',
+        maxWidth: '80%',
+    },
 
-    emptyState: { alignItems: 'center', paddingVertical: 50, opacity: 0.6 },
-    emptyTitle: { color: COLORS.text, fontSize: 16, fontWeight: '600', marginTop: 16 },
-    emptyText: { color: COLORS.textSecondary, textAlign: 'center', marginTop: 8, maxWidth: '70%', fontSize: 13 },
+    // Horizontal Tree Styles
+    treeHeading: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: SPACING.m,
+        marginTop: 20, // Add space from referral section
+        marginBottom: 15,
+        gap: 10,
+    },
+    treeHeadingText: {
+        fontSize: 20,
+        fontWeight: 'bold',
+        color: COLORS.text,
+        letterSpacing: 0.5,
+    },
+    horizontalScroll: { 
+        flex: 1, 
+        paddingVertical: 10,
+    },
+    horizontalTreeContainer: {
+        paddingHorizontal: SPACING.m,
+        alignItems: 'flex-start',
+        paddingRight: 100, // Extra space for deep trees
+    },
+    horizontalNodeRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    nodeContainer: {
+        position: 'relative',
+        paddingVertical: 4,
+        height: 80, // Row height
+        justifyContent: 'center',
+    },
+    horizontalNodeCard: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: 'rgba(255, 255, 255, 0.95)',
+        paddingHorizontal: 12,
+        paddingVertical: 0,
+        width: 180, // Slightly wider
+        height: 54, // Slightly taller
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: 'rgba(226, 232, 240, 0.8)',
+        borderLeftWidth: 4,
+        borderLeftColor: COLORS.secondary,
+        marginVertical: 4,
+        marginLeft: 20, // Connector gap
+        elevation: 3,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+    },
+    horizontalNodeCardExpanded: {
+        backgroundColor: '#fff',
+        borderColor: COLORS.secondary + '40',
+        shadowOpacity: 0.15,
+        elevation: 5,
+    },
+    horizontalNodeAvatar: {
+        width: 32,
+        height: 32,
+        borderRadius: 16,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginRight: 10,
+    },
+    nodeMainInfo: {
+        flex: 1,
+    },
+    nodeName: {
+        fontSize: 13,
+        fontWeight: '700',
+        color: COLORS.text,
+    },
+    nodeId: {
+        fontSize: 10,
+        color: COLORS.textSecondary,
+        marginTop: 1,
+    },
+    nodeLevelBadge: {
+        backgroundColor: COLORS.secondary + '15',
+        paddingHorizontal: 6,
+        paddingVertical: 2,
+        borderRadius: 4,
+        marginHorizontal: 8,
+    },
+    nodeLevelText: {
+        fontSize: 10,
+        fontWeight: 'bold',
+        color: COLORS.secondary,
+    },
+    expandIndicator: {
+        width: 20,
+        height: 20,
+        borderRadius: 10,
+        backgroundColor: '#f8fafc',
+        justifyContent: 'center',
+        alignItems: 'center',
+        borderWidth: 1,
+        borderColor: COLORS.border,
+    },
+    expandIndicatorActive: {
+        backgroundColor: COLORS.secondary,
+        borderColor: COLORS.secondary,
+    },
+    childrenColumn: {
+        flexDirection: 'column',
+        position: 'relative',
+        paddingLeft: 20,
+    },
+    // Connectors
+    horizontalLineFromParent: {
+        position: 'absolute',
+        left: 0,
+        top: 40,
+        width: 20,
+        height: 1,
+        borderTopWidth: 1,
+        borderTopColor: COLORS.border,
+        borderStyle: 'dashed',
+    },
+    horizontalLineToChildren: {
+        position: 'absolute',
+        right: -20,
+        top: 40,
+        width: 20,
+        height: 1,
+        borderTopWidth: 1,
+        borderTopColor: COLORS.border,
+        borderStyle: 'dashed',
+        zIndex: -1,
+    },
+    childrenVerticalStem: {
+        position: 'absolute',
+        left: 0,
+        top: 40,
+        bottom: 40,
+        width: 1,
+        borderLeftWidth: 1,
+        borderLeftColor: COLORS.border,
+        borderStyle: 'dashed',
+    },
+
+    emptyContainer: {
+        alignItems: 'center',
+        paddingVertical: 40,
+        marginHorizontal: SPACING.m,
+        backgroundColor: 'rgba(255, 255, 255, 0.5)',
+        width: 180,
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: COLORS.border,
+        borderStyle: 'dashed',
+    },
+
+    referralSection: {
+        paddingVertical: 12,
+        paddingHorizontal: SPACING.m,
+        backgroundColor: 'rgba(255, 255, 255, 0.8)',
+        borderBottomWidth: 1,
+        borderBottomColor: COLORS.border,
+    },
+    referralLabel: {
+        fontSize: 14,
+        color: COLORS.textSecondary,
+        marginBottom: 8,
+        fontWeight: '600',
+    },
+    referralBox: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: 'rgba(255, 255, 255, 0.85)',
+        borderRadius: 8,
+        borderWidth: 1,
+        borderColor: COLORS.border,
+        paddingHorizontal: 12,
+        paddingVertical: 10,
+    },
+    referralLink: {
+        flex: 1,
+        color: COLORS.text,
+        fontSize: 13,
+        marginRight: 10,
+    },
+    referralCodeRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: 8,
+    },
+    referralCodeLabel: {
+        fontSize: 13,
+        color: COLORS.textSecondary,
+        fontWeight: '600',
+        marginRight: 10,
+    },
+    referralCodeBadge: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#f0fdf4',
+        borderWidth: 1,
+        borderColor: COLORS.secondary,
+        borderRadius: 8,
+        paddingHorizontal: 12,
+        paddingVertical: 5,
+        gap: 8,
+    },
+    referralCodeText: {
+        fontSize: 15,
+        fontWeight: 'bold',
+        color: COLORS.secondary,
+        letterSpacing: 1,
+    },
+    copyBadge: {
+        backgroundColor: COLORS.secondary + '15',
+        paddingHorizontal: 8,
+        paddingVertical: 2,
+        borderRadius: 4,
+    },
+    copyBadgeText: {
+        fontSize: 10,
+        color: COLORS.secondary,
+        fontWeight: 'bold',
+    },
+    copyButton: {
+        backgroundColor: '#852834',
+        paddingHorizontal: 12,
+        paddingVertical: 8,
+        borderRadius: 6,
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginLeft: 8,
+    },
+    copyButtonText: {
+        color: '#fff',
+        fontSize: 12,
+        fontWeight: '700',
+    },
+    shareButton: {
+        backgroundColor: '#7b8c24',
+        marginLeft: 8,
+    },
 });
 
 export default NetworkScreen;

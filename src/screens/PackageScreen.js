@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, Text, View, ScrollView, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
+import { StyleSheet, Text, View, ScrollView, TouchableOpacity, Alert, ActivityIndicator, Platform } from 'react-native';
 import { COLORS, SPACING, SIZES } from '../theme/theme';
 import apiClient from '../api/client';
-import { CheckCircle2, ChevronRight } from 'lucide-react-native';
+import { CheckCircle2, Package, ChevronRight } from 'lucide-react-native';
 import { useAuth } from '../store/AuthContext';
+import MainHeader from '../components/MainHeader';
+import ScreenBackground from '../components/ScreenBackground';
 
 const PackageCard = ({ item, onPurchase, loading }) => (
     <View style={styles.card}>
@@ -81,8 +83,9 @@ const PackageScreen = ({ navigation }) => {
             };
 
             navigation.navigate('KYCVerification', { 
-                selectedPackage: kycPackage,
-                jumpToStep: 2 
+                packageName: kycPackage.name,
+                packageAmount: kycPackage.amount,
+                jumpToStep: 3 
             });
         } catch (e) {
             console.error('KYC check failed', e);
@@ -99,30 +102,35 @@ const PackageScreen = ({ navigation }) => {
     if (loading) return <View style={styles.center}><ActivityIndicator color={COLORS.secondary} /></View>;
 
     return (
-        <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-            <Text style={styles.title}>Investment Packages</Text>
-            <Text style={styles.subtitle}>Choose a package to start earning income</Text>
+        <ScreenBackground>
+            <View style={styles.container}>
+                <MainHeader title="Packages" navigation={navigation} hideProfile={true} />
+                <ScrollView contentContainerStyle={styles.content}>
+                    <Text style={styles.title}>Investment Packages</Text>
+                    <Text style={styles.subtitle}>Choose a package to start earning income</Text>
 
-            {packages.map(pkg => (
-                <PackageCard
-                    key={pkg.id}
-                    item={pkg}
-                    onPurchase={() => handlePurchase(pkg)}
-                    loading={false}
-                />
-            ))}
-        </ScrollView>
+                    {packages.map(pkg => (
+                        <PackageCard
+                            key={pkg.id}
+                            item={pkg}
+                            onPurchase={() => handlePurchase(pkg)}
+                            loading={false}
+                        />
+                    ))}
+                </ScrollView>
+            </View>
+        </ScreenBackground>
     );
 };
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: COLORS.background },
+    container: { flex: 1, backgroundColor: 'transparent' },
     content: { padding: SPACING.m },
     center: { flex: 1, backgroundColor: COLORS.background, justifyContent: 'center', alignItems: 'center' },
     title: { fontSize: SIZES.h2, color: COLORS.text, fontWeight: 'bold', marginTop: SPACING.m },
-    subtitle: { fontSize: 14, color: COLORS.textSecondary, marginBottom: SPACING.xl, marginTop: 4 },
+    subtitle: { fontSize: 15, color: COLORS.secondary, marginBottom: SPACING.xl, marginTop: 4, fontWeight: '700' },
     card: {
-        backgroundColor: COLORS.surface,
+        backgroundColor: 'rgba(255, 255, 255, 0.85)',
         padding: SPACING.l,
         borderRadius: SIZES.radius,
         marginBottom: SPACING.l,

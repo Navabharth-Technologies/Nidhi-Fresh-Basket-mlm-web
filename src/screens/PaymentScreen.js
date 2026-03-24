@@ -4,6 +4,9 @@ import { COLORS, SPACING, SIZES } from '../theme/theme';
 import apiClient from '../api/client';
 import { CreditCard, Smartphone, Banknote, ShieldCheck } from 'lucide-react-native';
 
+import MainHeader from '../components/MainHeader';
+import ScreenBackground from '../components/ScreenBackground';
+
 const PaymentScreen = ({ route, navigation }) => {
     const { pkg } = route.params;
     const [loading, setLoading] = useState(false);
@@ -64,16 +67,19 @@ const PaymentScreen = ({ route, navigation }) => {
     );
 
     return (
-        <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent}>
-            <View style={styles.summaryCard}>
-                <Text style={styles.summaryLabel}>Total Amount Payable</Text>
-                <Text style={styles.amount}>₹{pkg.price}</Text>
-                <View style={styles.divider} />
-                <View style={styles.row}>
-                    <Text style={styles.pkgName}>{pkg.name} Subscription</Text>
-                    <Text style={styles.pkgPrice}>₹{pkg.price}</Text>
-                </View>
-            </View>
+        <ScreenBackground>
+            <View style={styles.container}>
+                <MainHeader title="Payment" navigation={navigation} showBack hideProfile={true} />
+                <ScrollView contentContainerStyle={styles.scrollContent}>
+                    <View style={styles.summaryCard}>
+                        <Text style={styles.summaryLabel}>Total Amount Payable</Text>
+                        <Text style={styles.amount}>₹{pkg.price}</Text>
+                        <View style={styles.divider} />
+                        <View style={styles.row}>
+                            <Text style={styles.pkgName}>{pkg.name} Subscription</Text>
+                            <Text style={styles.pkgPrice}>₹{pkg.price}</Text>
+                        </View>
+                    </View>
 
             <Text style={styles.sectionTitle}>Select Payment Method</Text>
 
@@ -97,12 +103,14 @@ const PaymentScreen = ({ route, navigation }) => {
                     <Text style={styles.payButtonText}>Pay Now ₹{pkg.price}</Text>
                 )}
             </TouchableOpacity>
-        </ScrollView>
+            </ScrollView>
+        </View>
+    </ScreenBackground>
     );
 };
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: '#f8f9fa' },
+    container: { flex: 1, backgroundColor: 'transparent' },
     scrollContent: { padding: 20 },
     summaryCard: {
         backgroundColor: '#fff',

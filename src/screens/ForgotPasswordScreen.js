@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { StyleSheet, Text, View, TextInput, TouchableOpacity, ScrollView, Alert, ActivityIndicator, Image } from 'react-native';
 import apiClient from '../api/client';
 import { Phone, ChevronLeft, Lock, KeyRound, CheckCircle } from 'lucide-react-native';
+import ScreenBackground from '../components/ScreenBackground';
 
 const ForgotPasswordScreen = ({ navigation }) => {
     const [phone, setPhone] = useState('');
@@ -11,6 +12,8 @@ const ForgotPasswordScreen = ({ navigation }) => {
     const [otpSent, setOtpSent] = useState(false);
     const [loading, setLoading] = useState(false);
     const [resetLoading, setResetLoading] = useState(false);
+    const [showPassword, setShowPassword] = useState(false);
+    const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
     const handleSendOTP = async () => {
         if (!phone) {
@@ -47,6 +50,16 @@ const ForgotPasswordScreen = ({ navigation }) => {
             return;
         }
 
+        if (otp.length !== 6) {
+            Alert.alert('Error', 'Please enter a valid 6-digit OTP');
+            return;
+        }
+
+        if (newPassword.length < 6) {
+            Alert.alert('Error', 'Password must be at least 6 characters');
+            return;
+        }
+
         setResetLoading(true);
         try {
             const res = await apiClient.post('/users/reset-password', {
@@ -66,116 +79,140 @@ const ForgotPasswordScreen = ({ navigation }) => {
     };
 
     return (
-        <ScrollView contentContainerStyle={styles.container}>
-            <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-                <ChevronLeft color="#1a531b" size={24} />
-                <Text style={styles.backText}>Back to Login</Text>
-            </TouchableOpacity>
+        <ScreenBackground>
+            <ScrollView contentContainerStyle={styles.container}>
+                <TouchableOpacity
+                    style={[styles.backButton, resetLoading && { opacity: 0.5 }]}
+                    onPress={() => {
+                        if (navigation.canGoBack()) {
+                            navigation.goBack();
+                        } else {
+                            navigation.navigate('Login');
+                        }
+                    }}
+                    disabled={resetLoading}
+                >
+                    <ChevronLeft color="#1a531b" size={24} />
+                    <Text style={styles.backText}>Back to Login</Text>
+                </TouchableOpacity>
 
-            <View style={styles.header}>
-                <Image
-                    source={require('../../assets/nidhi_logo.png')}
-                    style={styles.logo}
-                    resizeMode="contain"
-                />
-                <Text style={styles.title}>Forgot Password?</Text>
-                <Text style={styles.subtitle}>Enter your 10-digit phone number to receive a 6-digit OTP for password reset.</Text>
-            </View>
-
-            <View style={styles.form}>
-                <View style={[styles.inputContainer, otpSent && styles.disabledInput]}>
-                    <Phone color={otpSent ? "#999" : "#666"} size={20} style={styles.inputIcon} />
-                    <TextInput
-                        style={[styles.input, otpSent && { color: "#999" }]}
-                        placeholder="10-Digit Phone Number"
-                        value={phone}
-                        onChangeText={(txt) => {
-                            setPhone(txt);
-                            if (otpSent) setOtpSent(false); // Reset if they change number
-                        }}
-                        keyboardType="phone-pad"
-                        maxLength={10}
+                <View style={styles.header}>
+                    <Image
+                        source={require('../../assets/nidhi_logo.png')}
+                        style={styles.logo}
+                        resizeMode="contain"
                     />
-                    {otpSent && <CheckCircle color="#1a531b" size={18} style={{marginLeft: 8}} />}
+                    <Text style={styles.title}>Forgot Password?</Text>
+                    <Text style={styles.subtitle}>Enter your 10-digit phone number to receive a 6-digit OTP for password reset.</Text>
                 </View>
 
-                {!otpSent ? (
-                    <TouchableOpacity 
-                        style={styles.button} 
-                        onPress={handleSendOTP}
-                        disabled={loading}
-                    >
-                        {loading ? (
-                            <ActivityIndicator color="#fff" />
-                        ) : (
-                            <Text style={styles.buttonText}>Send OTP</Text>
-                        )}
-                    </TouchableOpacity>
-                ) : (
-                    <View style={styles.otpCard}>
-                        <Text style={styles.cardTitle}>Enter Reset Details</Text>
-                        <Text style={styles.cardSubtitle}>OTP has been sent to your registered mobile number.</Text>
-                        
-                        <View style={styles.cardInputContainer}>
-                            <KeyRound color="#666" size={20} style={styles.inputIcon} />
-                            <TextInput
-                                style={styles.input}
-                                placeholder="6-Digit OTP"
-                                value={otp}
-                                onChangeText={setOtp}
-                                keyboardType="number-pad"
-                                maxLength={6}
-                            />
-                        </View>
+                <View style={styles.form}>
+                    <View style={[styles.inputContainer, otpSent && styles.disabledInput]}>
+                        <Phone color={otpSent ? "#999" : "#666"} size={20} style={styles.inputIcon} />
+                        <TextInput
+                            style={[styles.input, otpSent && { color: "#999" }]}
+                            placeholder="10-Digit Phone Number"
+                            value={phone}
+                            onChangeText={(txt) => {
+                                setPhone(txt);
+                                if (otpSent) setOtpSent(false); // Reset if they change number
+                            }}
+                            keyboardType="phone-pad"
+                            maxLength={10}
+                        />
+                        {otpSent && <CheckCircle color="#1a531b" size={18} style={{ marginLeft: 8 }} />}
+                    </View>
 
-                        <View style={styles.cardInputContainer}>
-                            <Lock color="#666" size={20} style={styles.inputIcon} />
-                            <TextInput
-                                style={styles.input}
-                                placeholder="New Password"
-                                value={newPassword}
-                                onChangeText={setNewPassword}
-                                secureTextEntry
-                            />
-                        </View>
-
-                        <View style={styles.cardInputContainer}>
-                            <Lock color="#666" size={20} style={styles.inputIcon} />
-                            <TextInput
-                                style={styles.input}
-                                placeholder="Confirm New Password"
-                                value={confirmPassword}
-                                onChangeText={setConfirmPassword}
-                                secureTextEntry
-                            />
-                        </View>
-
-                        <TouchableOpacity 
-                            style={styles.resetButton} 
-                            onPress={handleResetPassword}
-                            disabled={resetLoading}
+                    {!otpSent ? (
+                        <TouchableOpacity
+                            style={styles.button}
+                            onPress={handleSendOTP}
+                            disabled={loading}
                         >
-                            {resetLoading ? (
+                            {loading ? (
                                 <ActivityIndicator color="#fff" />
                             ) : (
-                                <Text style={styles.buttonText}>Reset Password</Text>
+                                <Text style={styles.buttonText}>Send OTP</Text>
                             )}
                         </TouchableOpacity>
+                    ) : (
+                        <View style={styles.otpCard}>
+                            <Text style={styles.cardTitle}>Enter Reset Details</Text>
+                            <Text style={styles.cardSubtitle}>OTP has been sent to your registered mobile number.</Text>
 
-                        <TouchableOpacity onPress={() => setOtpSent(false)} style={styles.resendLink}>
-                            <Text style={styles.resendText}>Change Number?</Text>
-                        </TouchableOpacity>
-                    </View>
-                )}
-            </View>
-        </ScrollView>
+                            <View style={styles.cardInputContainer}>
+                                <KeyRound color="#666" size={20} style={styles.inputIcon} />
+                                <TextInput
+                                    style={styles.input}
+                                    placeholder="6-Digit OTP"
+                                    value={otp}
+                                    onChangeText={setOtp}
+                                    keyboardType="number-pad"
+                                    maxLength={6}
+                                />
+                            </View>
+
+                            <View style={styles.cardInputContainer}>
+                                <Lock color="#666" size={20} style={styles.inputIcon} />
+                                <TextInput
+                                    style={styles.input}
+                                    placeholder="New Password"
+                                    value={newPassword}
+                                    onChangeText={setNewPassword}
+                                    secureTextEntry={!showPassword}
+                                    contextMenuHidden={!showPassword}
+                                    selectTextOnFocus={showPassword}
+                                    editable={!resetLoading}
+                                />
+                                <TouchableOpacity onPress={() => setShowPassword(!showPassword)} style={styles.eyeIconBtn}>
+                                    {showPassword ? <Lock size={18} color="#1a531b" /> : <Lock size={18} color="#999" opacity={0.5} />}
+                                </TouchableOpacity>
+                            </View>
+
+                            <View style={styles.cardInputContainer}>
+                                <Lock color="#666" size={20} style={styles.inputIcon} />
+                                <TextInput
+                                    style={styles.input}
+                                    placeholder="Confirm New Password"
+                                    value={confirmPassword}
+                                    onChangeText={setConfirmPassword}
+                                    secureTextEntry={!showConfirmPassword}
+                                    contextMenuHidden={!showConfirmPassword}
+                                    selectTextOnFocus={showConfirmPassword}
+                                    editable={!resetLoading}
+                                />
+                                <TouchableOpacity onPress={() => setShowConfirmPassword(!showConfirmPassword)} style={styles.eyeIconBtn}>
+                                    {showConfirmPassword ? <Lock size={18} color="#1a531b" /> : <Lock size={18} color="#999" opacity={0.5} />}
+                                </TouchableOpacity>
+                            </View>
+
+                            <TouchableOpacity
+                                style={styles.resetButton}
+                                onPress={handleResetPassword}
+                                disabled={resetLoading}
+                            >
+                                {resetLoading ? (
+                                    <ActivityIndicator color="#fff" />
+                                ) : (
+                                    <Text style={styles.buttonText}>Reset Password</Text>
+                                )}
+                            </TouchableOpacity>
+
+                            <TouchableOpacity onPress={() => setOtpSent(false)} style={styles.resendLink}>
+                                <Text style={styles.resendText}>Change Number?</Text>
+                            </TouchableOpacity>
+                        </View>
+                    )}
+                </View>
+            </ScrollView>
+        </ScreenBackground>
     );
 };
 
 const styles = StyleSheet.create({
     container: {
         flexGrow: 1,
-        backgroundColor: '#fff',
+        backgroundColor: 'transparent',
         padding: 20,
     },
     backButton: {
@@ -186,7 +223,7 @@ const styles = StyleSheet.create({
     },
     backText: {
         fontSize: 16,
-        color: '#1a531b',
+        color: 'black',
         fontWeight: '500',
         marginLeft: 5,
     },
@@ -196,8 +233,8 @@ const styles = StyleSheet.create({
     },
     logo: {
         width: 150,
-        height: 60,
-        marginBottom: 20,
+        height: 130,
+        marginBottom: -10,
     },
     title: {
         fontSize: 24,
@@ -223,6 +260,7 @@ const styles = StyleSheet.create({
         paddingHorizontal: 12,
         marginBottom: 20,
         height: 50,
+        backgroundColor: 'rgba(255, 255, 255, 0.85)',
     },
     inputIcon: {
         marginRight: 10,
@@ -251,11 +289,11 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
     },
     disabledInput: {
-        backgroundColor: '#f9f9f9',
+        backgroundColor: 'rgba(240, 240, 240, 0.8)',
         borderColor: '#eee',
     },
     otpCard: {
-        backgroundColor: '#fff',
+        backgroundColor: 'rgba(255, 255, 255, 0.85)',
         borderRadius: 12,
         padding: 20,
         marginTop: 10,
@@ -304,6 +342,10 @@ const styles = StyleSheet.create({
         color: '#666',
         fontSize: 14,
         textDecorationLine: 'underline',
+    },
+    eyeIconBtn: {
+        padding: 5,
+        marginLeft: 5,
     }
 });
 

@@ -2,8 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { StyleSheet, Text, View, TextInput, TouchableOpacity, ScrollView, Alert, KeyboardAvoidingView, Platform, Modal, ActivityIndicator, useWindowDimensions } from 'react-native';
 import { COLORS, SPACING, SIZES } from '../theme/theme';
 import apiClient from '../api/client';
+import { Eye, EyeOff } from 'lucide-react-native';
+import { useAuth } from '../store/AuthContext';
+import ScreenBackground from '../components/ScreenBackground';
 
 const RegisterScreen = ({ navigation }) => {
+    const { login } = useAuth();
     const { width } = useWindowDimensions();
     const isDesktop = width >= 768;
     const showAlert = (title, message, actions) => {
@@ -37,8 +41,29 @@ const RegisterScreen = ({ navigation }) => {
     });
     const [loading, setLoading] = useState(false);
     const [phoneChecking, setPhoneChecking] = useState(false);
+    const [showPassword, setShowPassword] = useState(false);
+    const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+    const [isPasswordFocused, setIsPasswordFocused] = useState(false);
+    const [isConfirmPasswordFocused, setIsConfirmPasswordFocused] = useState(false);
 
     useEffect(() => {
+        // Detect referral code from URL on Web
+        if (Platform.OS === 'web') {
+            try {
+                // Check both standard search and search inside hash for params
+                const fullUrl = window.location.href;
+                const searchPart = fullUrl.includes('?') ? fullUrl.split('?')[1] : '';
+                const params = new URLSearchParams(searchPart);
+                const ref = params.get('ref');
+                
+                if (ref) {
+                    setFormData(prev => ({ ...prev, referral_by: ref }));
+                }
+            } catch (err) {
+                console.log('Referral detection failed safely:', err);
+            }
+        }
+
         if (formData.phone.length === 10) {
             handlePhoneCheck(formData.phone);
         }
@@ -88,7 +113,7 @@ const RegisterScreen = ({ navigation }) => {
         }
 
         // 3. Email validation (Required)
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
         if (!emailRegex.test(email)) {
             return showAlert('Error', 'Please enter a valid email address');
         }
@@ -113,8 +138,19 @@ const RegisterScreen = ({ navigation }) => {
         try {
             const res = await apiClient.post('/users/register', formData);
             const generatedId = res.data.user_id || res.data.username || 'N/A';
+            const { token } = res.data;
+
             showAlert('Success', `Registration successful!\n\nYour Generated User ID is: ${generatedId}\n\nPlease save this to login.`, [
-                { text: 'OK', onPress: () => navigation.navigate('Login') }
+                { 
+                    text: 'OK', 
+                    onPress: () => {
+                        if (token) {
+                            login(token, 'user', false);
+                        } else {
+                            navigation.navigate('Login');
+                        }
+                    } 
+                }
             ]);
         } catch (e) {
             console.log('Registration Error:', e.response?.data || e.message);
@@ -127,101 +163,117 @@ const RegisterScreen = ({ navigation }) => {
     const updateForm = (key, val) => setFormData({ ...formData, [key]: val });
 
     return (
-        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.container}>
-            <ScrollView contentContainerStyle={[styles.scrollContent, isDesktop && styles.scrollContentDesktop]}>
-                <View style={[styles.header, isDesktop && styles.headerDesktop]}>
-                    <Text style={styles.title}>Join Our Network</Text>
-                    <Text style={styles.subtitle}>Create your account and get started today.</Text>
-                </View>
-
-                <View style={[styles.form, isDesktop && styles.formDesktop]}>
-                    <Text style={styles.label}>Full Name *</Text>
-                    <TextInput
-                        style={styles.input}
-                        placeholder="Enter Your Full Name"
-                        placeholderTextColor="#999"
-                        value={formData.full_name}
-                        onChangeText={(v) => updateForm('full_name', v)}
-                    />
-
-                    <Text style={styles.label}>Email *</Text>
-                    <TextInput
-                        style={styles.input}
-                        placeholder="example@mail.com"
-                        placeholderTextColor="#999"
-                        value={formData.email}
-                        onChangeText={(v) => updateForm('email', v)}
-                        keyboardType="email-address"
-                    />
-
-                    <View style={styles.phoneLabelRow}>
-                        <Text style={styles.label}>Phone Number *</Text>
-                        {phoneChecking && <ActivityIndicator size="small" color="#217323" />}
+        <ScreenBackground>
+            <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.container}>
+                <ScrollView contentContainerStyle={[styles.scrollContent, isDesktop && styles.scrollContentDesktop]}>
+                    <View style={[styles.header, isDesktop && styles.headerDesktop]}>
+                        <Text style={styles.title}>Join Our Network</Text>
+                        <Text style={styles.subtitle}>Create your account and get started today.</Text>
                     </View>
-                    <TextInput
-                        style={styles.input}
-                        placeholder="9876543210"
-                        placeholderTextColor="#999"
-                        value={formData.phone}
-                        onChangeText={(v) => updateForm('phone', v)}
-                        keyboardType="phone-pad"
-                        maxLength={10}
-                    />
 
-                    <Text style={styles.label}>Referral Code (Optional)</Text>
-                    <TextInput
-                        style={styles.input}
-                        placeholder="REFERRED BY"
-                        placeholderTextColor="#999"
-                        value={formData.referral_by}
-                        onChangeText={(v) => updateForm('referral_by', v)}
-                        autoCapitalize="characters"
-                    />
+                    <View style={[styles.form, isDesktop && styles.formDesktop]}>
+                        <Text style={styles.label}>Full Name *</Text>
+                        <TextInput
+                            style={styles.input}
+                            placeholder="Enter Your Full Name"
+                            placeholderTextColor="#999"
+                            value={formData.full_name}
+                            onChangeText={(v) => updateForm('full_name', v.replace(/[^a-zA-Z\s]/g, ''))}
+                        />
 
-                    <Text style={styles.label}>Password *</Text>
-                    <TextInput
-                        style={styles.input}
-                        placeholder="••••••••"
-                        placeholderTextColor="#999"
-                        value={formData.password}
-                        onChangeText={(v) => updateForm('password', v)}
-                        secureTextEntry
-                    />
+                        <Text style={styles.label}>Email *</Text>
+                        <TextInput
+                            style={styles.input}
+                            placeholder="example@mail.com"
+                            placeholderTextColor="#999"
+                            value={formData.email}
+                            onChangeText={(v) => updateForm('email', v)}
+                            keyboardType="email-address"
+                        />
 
-                    <Text style={styles.label}>Confirm Password *</Text>
-                    <TextInput
-                        style={styles.input}
-                        placeholder="••••••••"
-                        placeholderTextColor="#999"
-                        value={formData.confirm_password}
-                        onChangeText={(v) => updateForm('confirm_password', v)}
-                        secureTextEntry
-                    />
+                        <View style={styles.phoneLabelRow}>
+                            <Text style={styles.label}>Phone Number *</Text>
+                            {phoneChecking && <ActivityIndicator size="small" color="#217323" />}
+                        </View>
+                        <TextInput
+                            style={styles.input}
+                            placeholder="9876543210"
+                            placeholderTextColor="#999"
+                            value={formData.phone}
+                            onChangeText={(v) => updateForm('phone', v)}
+                            keyboardType="phone-pad"
+                            maxLength={10}
+                        />
 
-                    <TouchableOpacity 
-                        style={styles.button} 
-                        onPress={handleRegister} 
-                        disabled={loading}
-                    >
-                        <Text style={styles.buttonText}>
-                            {loading ? 'Registering...' : 'Register'}
-                        </Text>
-                    </TouchableOpacity>
+                        <Text style={styles.label}>Referral Code *</Text>
+                        <TextInput
+                            style={styles.input}
+                            placeholder="REFERRED BY"
+                            placeholderTextColor="#999"
+                            value={formData.referral_by}
+                            onChangeText={(v) => updateForm('referral_by', v.toUpperCase())}
+                            autoCapitalize="characters"
+                        />
 
-                    <View style={styles.footer}>
-                        <Text style={styles.footerText}>Already have an account? </Text>
-                        <TouchableOpacity onPress={() => navigation.navigate('Login')}>
-                            <Text style={styles.link}>Sign In</Text>
+                        <Text style={styles.label}>Password *</Text>
+                        <View style={[styles.passwordContainer, isPasswordFocused && styles.passwordContainerFocused]}>
+                            <TextInput
+                                style={styles.passwordInput}
+                                placeholder="••••••••"
+                                placeholderTextColor="#999"
+                                value={formData.password}
+                                onChangeText={(v) => updateForm('password', v)}
+                                secureTextEntry={!showPassword}
+                                onFocus={() => setIsPasswordFocused(true)}
+                                onBlur={() => setIsPasswordFocused(false)}
+                            />
+                            <TouchableOpacity style={styles.eyeIcon} onPress={() => setShowPassword(!showPassword)}>
+                                {showPassword ? <Eye size={20} color="#666" /> : <EyeOff size={20} color="#666" />}
+                            </TouchableOpacity>
+                        </View>
+
+                        <Text style={styles.label}>Confirm Password *</Text>
+                        <View style={[styles.passwordContainer, isConfirmPasswordFocused && styles.passwordContainerFocused]}>
+                            <TextInput
+                                style={styles.passwordInput}
+                                placeholder="••••••••"
+                                placeholderTextColor="#999"
+                                value={formData.confirm_password}
+                                onChangeText={(v) => updateForm('confirm_password', v)}
+                                secureTextEntry={!showConfirmPassword}
+                                onFocus={() => setIsConfirmPasswordFocused(true)}
+                                onBlur={() => setIsConfirmPasswordFocused(false)}
+                            />
+                            <TouchableOpacity style={styles.eyeIcon} onPress={() => setShowConfirmPassword(!showConfirmPassword)}>
+                                {showConfirmPassword ? <Eye size={20} color="#666" /> : <EyeOff size={20} color="#666" />}
+                            </TouchableOpacity>
+                        </View>
+
+                        <TouchableOpacity 
+                            style={styles.button} 
+                            onPress={handleRegister} 
+                            disabled={loading}
+                        >
+                            <Text style={styles.buttonText}>
+                                {loading ? 'Registering...' : 'Register'}
+                            </Text>
                         </TouchableOpacity>
+
+                        <View style={styles.footer}>
+                            <Text style={styles.footerText}>Already have an account? </Text>
+                            <TouchableOpacity onPress={() => navigation.navigate('Login')}>
+                                <Text style={styles.link}>Sign In</Text>
+                            </TouchableOpacity>
+                        </View>
                     </View>
-                </View>
-            </ScrollView>
-        </KeyboardAvoidingView>
+                </ScrollView>
+            </KeyboardAvoidingView>
+        </ScreenBackground>
     );
 };
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: '#f8f9fa' },
+    container: { flex: 1, backgroundColor: 'transparent' },
     scrollContent: { padding: 24, paddingVertical: 40 },
     scrollContentDesktop: {
         alignItems: 'center',
@@ -233,7 +285,7 @@ const styles = StyleSheet.create({
     },
     title: { fontSize: 32, color: '#1a531b', fontWeight: 'bold' },
     subtitle: { fontSize: 18, color: '#666', marginTop: 8, textAlign: 'center' },
-    form: { backgroundColor: '#ffffff', padding: 24, borderRadius: 16, elevation: 4, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 8 },
+    form: { backgroundColor: 'rgba(255, 255, 255, 0.85)', padding: 24, borderRadius: 16, elevation: 4, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 8 },
     formDesktop: {
         width: '100%',
         maxWidth: 600,
@@ -241,9 +293,32 @@ const styles = StyleSheet.create({
     label: { color: '#333', marginBottom: 8, fontSize: 16, fontWeight: '600' },
     phoneLabelRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 },
     input: {
-        backgroundColor: '#f1f3f5', color: '#111', padding: 14,
+        backgroundColor: 'rgba(255, 255, 255, 0.9)', color: '#111', padding: 14,
         borderRadius: 10, marginBottom: 16, borderWidth: 1, borderColor: '#dee2e6',
         fontSize: 16
+    },
+    passwordContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: 'rgba(255, 255, 255, 0.9)',
+        borderRadius: 10,
+        marginBottom: 16,
+        borderWidth: 1,
+        borderColor: '#dee2e6',
+    },
+    passwordInput: {
+        flex: 1,
+        color: '#111',
+        padding: 14,
+        fontSize: 16,
+        outlineStyle: 'none',
+    },
+    passwordContainerFocused: {
+        borderColor: COLORS.secondary,
+        borderWidth: 2,
+    },
+    eyeIcon: {
+        padding: 14,
     },
     button: { backgroundColor: '#217323', padding: 16, borderRadius: 10, alignItems: 'center', marginTop: 10 },
     buttonText: { color: '#ffffff', fontWeight: 'bold', fontSize: 20 },

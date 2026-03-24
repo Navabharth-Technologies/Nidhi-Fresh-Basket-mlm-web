@@ -5,21 +5,30 @@ import { CheckCircle, XCircle, User, FileText, Camera, Package, Hash, Download }
 import { COLORS, SPACING, SIZES } from '../theme/theme';
 import apiClient from '../api/client';
 import { useAuth } from '../store/AuthContext';
+import ScreenBackground from '../components/ScreenBackground';
 
 const KYCReviewScreen = ({ route, navigation }) => {
     const { token: authToken } = useAuth();
     const { kycData } = route.params;
+    const isRepurchase = (kycData.existing_packages_count || 0) > 0;
     const [loading, setLoading] = useState(false);
     const [showRejectModal, setShowRejectModal] = useState(false);
     const [rejectionReason, setRejectionReason] = useState('');
 
     const handleAction = async (status, reason = '') => {
+        console.log('[handleAction] Payload:', {
+            status,
+            user_id: kycData.user_id,
+            kyc_id: kycData.id,
+            remark: reason
+        });
         setLoading(true);
         try {
             const token = await AsyncStorage.getItem('token');
             const endpoint = status === 'approved' ? '/kyc/admin/approve-kyc' : '/kyc/admin/reject-kyc';
             await apiClient.post(endpoint, {
                 user_id: kycData.user_id,
+                kyc_id: kycData.id,
                 remark: reason
             }, {
                 headers: {
@@ -110,7 +119,11 @@ const KYCReviewScreen = ({ route, navigation }) => {
                         <Text style={styles.downloadText}>Download</Text>
                     </TouchableOpacity>
                 </View>
-                <TouchableOpacity onPress={openImage} activeOpacity={0.9} style={imageLoading ? styles.imagePlaceholder : null}>
+                <TouchableOpacity 
+                    onPress={openImage} 
+                    activeOpacity={0.9} 
+                    style={imageLoading ? styles.imagePlaceholder : null}
+                >
                     {imageLoading ? (
                         <View style={[styles.documentImage, styles.imagePlaceholder]}>
                             <ActivityIndicator color="#1a531b" />
@@ -132,13 +145,15 @@ const KYCReviewScreen = ({ route, navigation }) => {
     };
 
     return (
-        <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent}>
+        <ScreenBackground admin>
+            <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent}>
             <View style={styles.header}>
                 <View style={styles.avatar}>
                     <User color="#fff" size={30} />
                 </View>
-                <Text style={styles.userName}>{kycData.full_name || 'No Name'}</Text>
-                <Text style={styles.userId}>User ID: {kycData.userid || kycData.username} | DB ID: {kycData.user_id}</Text>
+                <Text style={styles.userName}>{kycData.user_full_name || kycData.full_name || 'No Name'}</Text>
+                <Text style={styles.userId}>User ID: {kycData.userid || kycData.username}</Text>
+                <Text style={styles.userId}>Phone: {kycData.phone || 'N/A'}</Text>
             </View>
 
             <View style={styles.section}>
@@ -163,21 +178,41 @@ const KYCReviewScreen = ({ route, navigation }) => {
             <View style={styles.section}>
                 <View style={styles.sectionHeader}>
                     <FileText size={20} color="#1a531b" />
-                    <Text style={styles.sectionTitle}>Identity Details</Text>
+                    <Text style={styles.sectionTitle}>Identity & Bank Details</Text>
+                </View>
+                {!isRepurchase && (
+                    <>
+                        <View style={styles.detailRow}>
+                            <Text style={styles.detailLabel}>Aadhar Number:</Text>
+                            <Text style={styles.detailValue}>{kycData.aadhar_number}</Text>
+                        </View>
+                        <View style={styles.detailRow}>
+                            <Text style={styles.detailLabel}>PAN Number:</Text>
+                            <Text style={styles.detailValue}>{kycData.pan_number}</Text>
+                        </View>
+                    </>
+                )}
+                <View style={styles.detailRow}>
+                    <Text style={styles.detailLabel}>Bank Account:</Text>
+                    <Text style={styles.detailValue}>{kycData.bank_account_number || 'N/A'}</Text>
                 </View>
                 <View style={styles.detailRow}>
-                    <Text style={styles.detailLabel}>Aadhar Number:</Text>
-                    <Text style={styles.detailValue}>{kycData.aadhar_number}</Text>
+                    <Text style={styles.detailLabel}>IFSC Code:</Text>
+                    <Text style={styles.detailValue}>{kycData.ifsc_code || 'N/A'}</Text>
                 </View>
                 <View style={styles.detailRow}>
-                    <Text style={styles.detailLabel}>PAN Number:</Text>
-                    <Text style={styles.detailValue}>{kycData.pan_number}</Text>
+                    <Text style={styles.detailLabel}>UPI ID:</Text>
+                    <Text style={styles.detailValue}>{kycData.upi_id || 'N/A'}</Text>
                 </View>
             </View>
 
             <ImageSection title="Payment Screenshot" type="payment" />
-            <ImageSection title="Aadhar Card" type="aadhar" />
-            <ImageSection title="PAN Card" type="pan" />
+            {!isRepurchase && (
+                <>
+                    <ImageSection title="Aadhar Card" type="aadhar" />
+                    <ImageSection title="PAN Card" type="pan" />
+                </>
+            )}
 
             {kycData.kyc_status?.toLowerCase() === 'pending' && (
                 <View style={styles.actionRow}>
@@ -227,7 +262,14 @@ const KYCReviewScreen = ({ route, navigation }) => {
                             </TouchableOpacity>
                             <TouchableOpacity
                                 style={styles.modalBtnReject}
-                                onPress={() => handleAction('rejected', rejectionReason)}
+                                onPress={() => {
+                                    if (!rejectionReason.trim()) {
+                                        if (Platform.OS === 'web') alert('Please enter a rejection reason.');
+                                        else Alert.alert('Reason Required', 'Please enter a rejection reason.');
+                                        return;
+                                    }
+                                    handleAction('rejected', rejectionReason);
+                                }}
                             >
                                 <Text style={styles.modalBtnTextReject}>Confirm Reject</Text>
                             </TouchableOpacity>
@@ -242,17 +284,30 @@ const KYCReviewScreen = ({ route, navigation }) => {
                 </View>
             )}
         </ScrollView>
+        </ScreenBackground>
     );
 };
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: '#f3f4f6' },
+    container: { flex: 1, backgroundColor: 'transparent' },
     scrollContent: { padding: 16, paddingBottom: 40 },
     header: { alignItems: 'center', marginBottom: 20 },
     avatar: { width: 64, height: 64, borderRadius: 32, backgroundColor: '#1a531b', justifyContent: 'center', alignItems: 'center', marginBottom: 12 },
     userName: { fontSize: 22, fontWeight: 'bold', color: '#111' },
     userId: { fontSize: 13, color: '#6b7280', marginTop: 4 },
-    section: { backgroundColor: '#fff', borderRadius: 16, padding: 16, marginBottom: 16, elevation: 2, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.1, shadowRadius: 4 },
+    section: { 
+        backgroundColor: 'rgba(255, 255, 255, 0.85)', 
+        borderRadius: 16, 
+        padding: 16, 
+        marginBottom: 16, 
+        elevation: 1, 
+        shadowColor: '#000', 
+        shadowOffset: { width: 0, height: 1 }, 
+        shadowOpacity: 0.05, 
+        shadowRadius: 2, 
+        borderWidth: 1, 
+        borderColor: 'rgba(255, 255, 255, 0.3)' 
+    },
     sectionHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 12, borderBottomWidth: 1, borderBottomColor: '#f3f4f6', paddingBottom: 8 },
     sectionTitle: { fontSize: 15, fontWeight: 'bold', color: '#1a531b', marginLeft: 10 },
     detailRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 10 },

@@ -2,9 +2,23 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { StyleSheet, Text, View, ScrollView, TouchableOpacity, Alert, RefreshControl, Dimensions, useWindowDimensions } from 'react-native';
 import { COLORS, SPACING } from '../theme/theme';
 import apiClient from '../api/client';
-import { ArrowUpRight, ArrowDownLeft, Wallet, Gift, ArrowRight, History } from 'lucide-react-native';
+import { ArrowUpRight, ArrowDownLeft, Wallet, Gift, ArrowRight } from 'lucide-react-native';
 import { useAuth } from '../store/AuthContext';
+import ScreenBackground from '../components/ScreenBackground';
+import MainHeader from '../components/MainHeader';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
+import { Platform } from 'react-native';
+
+// Framer Motion for Web animations
+let motion = { button: TouchableOpacity, div: View };
+if (Platform.OS === 'web') {
+    try {
+        const { motion: fm } = require('framer-motion');
+        motion = fm;
+    } catch (e) {
+        console.warn('Framer Motion not available', e);
+    }
+}
 
 const { width } = Dimensions.get('window');
 
@@ -82,6 +96,8 @@ const TransactionItem = ({ item }) => {
     );
 };
 
+
+
 const WalletScreen = () => {
     const { width } = useWindowDimensions();
     const isDesktop = width >= 768;
@@ -93,7 +109,10 @@ const WalletScreen = () => {
         total_balance: '0.00'
     });
 
+    const isWeb = Platform.OS === 'web';
     const [activeTab, setActiveTab] = useState('commission'); // Default to commission to show EARNINGS & WITHDRAWALS first
+    const CardComponent = isWeb ? motion.div : TouchableOpacity;
+
     const [couponTx, setCouponTx] = useState([]);
     const [commissionTx, setCommissionTx] = useState([]);
     const [refreshing, setRefreshing] = useState(false);
@@ -112,12 +131,6 @@ const WalletScreen = () => {
                 commission_balance: balRes.data.commission_balance || '0.00',
                 total_balance: balRes.data.total_balance || '0.00'
             });
-
-            // Merge normal commission transactions with withdrawal requests for a unified view
-            // Filter out 'debit' withdrawals from commTxRes if they are already in withdrawRes to avoid duplicates?
-            // Actually, withdrawals in commTxRes have description 'Withdrawal approved by admin'. 
-            // Let's just show withdrawal requests separately or merge them cleanly.
-            // If we merge, we should sort by date.
 
             const mergedCommission = [
                 ...(commTxRes.data || []).filter(tx => tx.type !== 'debit'),
@@ -152,105 +165,146 @@ const WalletScreen = () => {
         navigation.navigate('WithdrawRequest', { balance: balances.commission_balance });
     };
 
-    const handleViewHistory = () => {
-        navigation.navigate('WithdrawHistory');
-    };
 
     return (
-        <View style={styles.container}>
-            <View style={[styles.header, isDesktop && styles.headerDesktop]}>
-                <View style={{ width: 40 }} />
-                <View style={{ alignItems: 'center' }}>
-                    <Text style={styles.headerLabel}>Total Balance</Text>
-                    <Text style={styles.balanceText}>₹{balances.total_balance}</Text>
+        <ScreenBackground>
+            <View style={styles.container}>
+                <MainHeader title="Wallet" navigation={navigation} hideProfile={true} />
+                <View style={styles.balanceHeader}>
+                    <View>
+                        <Text style={styles.headerLabel}>Total Balance</Text>
+                        <Text style={styles.balanceText}>₹{balances.total_balance}</Text>
+                    </View>
                 </View>
-                <TouchableOpacity onPress={handleViewHistory} style={styles.historyBtn}>
-                    <History color={COLORS.secondary} size={24} />
-                </TouchableOpacity>
+
+                <ScrollView
+                    style={{ flex: 1 }}
+                    refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={COLORS.secondary} />}
+                >
+                    <View style={[styles.section, isDesktop && styles.sectionDesktop]}>
+                        <View style={styles.sectionHeader}>
+                            <Text style={styles.sectionTitle}>My Wallets</Text>
+                        </View>
+                        <View style={styles.sectionBody}>
+                            <View style={styles.cardsRow}>
+                                {/* Coupon Wallet Card */}
+                                <CardComponent
+                                    style={StyleSheet.flatten([
+                                        styles.walletCard, 
+                                        isDesktop && styles.walletCardDesktop, 
+                                        { 
+                                            backgroundColor: activeTab === 'coupon' ? 'rgba(255, 237, 213, 0.6)' : 'rgba(255, 237, 213, 0.3)',
+                                            borderColor: activeTab === 'coupon' ? 'rgba(154, 52, 18, 0.5)' : 'rgba(154, 52, 18, 0.15)',
+                                            display: isWeb ? 'flex' : undefined,
+                                            flexDirection: 'column',
+                                            alignItems: 'flex-start',
+                                            cursor: isWeb ? 'pointer' : undefined,
+                                            borderStyle: 'solid',
+                                        }
+                                    ])}
+                                    {...(!isWeb ? { onPress: () => setActiveTab('coupon') } : { onClick: () => setActiveTab('coupon') })}
+                                    {...(isWeb ? {
+                                        whileHover: { 
+                                            scale: 1.01,
+                                            backgroundColor: 'rgba(255, 237, 213, 0.6)',
+                                            transition: { duration: 0.2 }
+                                        }
+                                    } : {})}
+                                >
+                                    <View style={styles.cardHeader}>
+                                        <View style={[styles.iconBox, { backgroundColor: 'rgba(255, 255, 255, 0.5)' }]}>
+                                            <Gift color="#9a3412" size={20} />
+                                        </View>
+                                    </View>
+                                    <Text style={styles.cardTitle}>Coupons</Text>
+                                    <Text style={[styles.cardBalance, { color: '#9a3412' }]}>₹{balances.coupon_balance}</Text>
+                                    <Text style={styles.cardInfo}>Non-withdrawable</Text>
+                                </CardComponent>
+            
+                                {/* Commission Wallet Card */}
+                                <CardComponent
+                                    style={StyleSheet.flatten([
+                                        styles.walletCard, 
+                                        isDesktop && styles.walletCardDesktop,
+                                        { 
+                                            backgroundColor: activeTab === 'commission' ? 'rgba(220, 252, 231, 0.6)' : 'rgba(220, 252, 231, 0.3)',
+                                            borderColor: activeTab === 'commission' ? 'rgba(22, 101, 52, 0.5)' : 'rgba(22, 101, 52, 0.15)',
+                                            display: isWeb ? 'flex' : undefined,
+                                            flexDirection: 'column',
+                                            alignItems: 'flex-start',
+                                            cursor: isWeb ? 'pointer' : undefined,
+                                            borderStyle: 'solid',
+                                        }
+                                    ])}
+                                    {...(!isWeb ? { onPress: () => setActiveTab('commission') } : { onClick: () => setActiveTab('commission') })}
+                                    {...(isWeb ? {
+                                        whileHover: { 
+                                            scale: 1.01,
+                                            backgroundColor: 'rgba(220, 252, 231, 0.6)',
+                                            transition: { duration: 0.2 }
+                                        }
+                                    } : {})}
+                                >
+                                    <View style={styles.cardHeader}>
+                                        <View style={[styles.iconBox, { backgroundColor: 'rgba(255, 255, 255, 0.5)' }]}>
+                                            <Wallet color="#166534" size={20} />
+                                        </View>
+                                    </View>
+                                    <Text style={styles.cardTitle}>Commission</Text>
+                                    <Text style={[styles.cardBalance, { color: '#166534' }]}>₹{balances.commission_balance}</Text>
+                                    <TouchableOpacity style={styles.withdrawBtn} onPress={handleWithdraw}>
+                                        <Text style={styles.withdrawBtnText}>Withdraw <ArrowRight size={12} color="#fff" style={{ marginLeft: 2 }} /></Text>
+                                    </TouchableOpacity>
+                                </CardComponent>
+                            </View>
+                        </View>
+                    </View>
+    
+                    <View style={[styles.section, isDesktop && styles.sectionDesktop]}>
+                        <View style={styles.sectionHeader}>
+                            <Text style={styles.sectionTitle}>
+                                {activeTab === 'coupon' ? 'Coupon Transactions' : 'Commission Transactions'}
+                            </Text>
+                        </View>
+                        <View style={styles.sectionBody}>
+                            {activeTab === 'coupon' ? (
+                                couponTx.length > 0 ? (
+                                    couponTx.map((item) => <TransactionItem key={`coup-${item.id}`} item={item} />)
+                                ) : (
+                                    <Text style={styles.emptyText}>No coupon transactions found</Text>
+                                )
+                            ) : (
+                                commissionTx.length > 0 ? (
+                                    commissionTx.map((item) => (
+                                        <TransactionItem
+                                            key={item.status ? `withdraw-${item.id}` : `comm-${item.id}`}
+                                            item={item}
+                                        />
+                                    ))
+                                ) : (
+                                    <Text style={styles.emptyText}>No commission transactions found</Text>
+                                )
+                            )}
+                        </View>
+                    </View>
+                </ScrollView>
             </View>
-
-            <ScrollView
-                style={{ flex: 1 }}
-                refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={COLORS.secondary} />}
-            >
-                <View style={[styles.cardsRow, isDesktop && styles.cardsRowDesktop]}>
-                    {/* Coupon Wallet Card */}
-                    <TouchableOpacity
-                        style={[styles.walletCard, isDesktop && styles.walletCardDesktop, activeTab === 'coupon' && styles.walletCardActive]}
-                        onPress={() => setActiveTab('coupon')}
-                    >
-                        <View style={styles.cardHeader}>
-                            <View style={styles.iconBox}>
-                                <Gift color={activeTab === 'coupon' ? COLORS.secondary : COLORS.textSecondary} size={20} />
-                            </View>
-                        </View>
-                        <Text style={styles.cardTitle}>Coupons</Text>
-                        <Text style={[styles.cardBalance, activeTab === 'coupon' && styles.textActive]}>₹{balances.coupon_balance}</Text>
-                        <Text style={styles.cardInfo}>Non-withdrawable</Text>
-                    </TouchableOpacity>
- 
-                    {/* Commission Wallet Card */}
-                    <TouchableOpacity
-                        style={[styles.walletCard, isDesktop && styles.walletCardDesktop, activeTab === 'commission' && styles.walletCardActive]}
-                        onPress={() => setActiveTab('commission')}
-                    >
-                        <View style={styles.cardHeader}>
-                            <View style={styles.iconBox}>
-                                <Wallet color={activeTab === 'commission' ? COLORS.secondary : COLORS.textSecondary} size={20} />
-                            </View>
-                        </View>
-                        <Text style={styles.cardTitle}>Commission</Text>
-                        <Text style={[styles.cardBalance, activeTab === 'commission' && styles.textActive]}>₹{balances.commission_balance}</Text>
-                        <TouchableOpacity style={styles.withdrawBtn} onPress={handleWithdraw}>
-                            <Text style={styles.withdrawBtnText}>Withdraw <ArrowRight size={12} color="#fff" style={{ marginLeft: 2 }} /></Text>
-                        </TouchableOpacity>
-                    </TouchableOpacity>
-                </View>
- 
-                <View style={[styles.transactionsContainer, isDesktop && styles.transactionsContainerDesktop]}>
-                    <Text style={styles.sectionTitle}>
-                        {activeTab === 'coupon' ? 'Coupon Transactions' : 'Commission Transactions'}
-                    </Text>
-
-                    {activeTab === 'coupon' ? (
-                        couponTx.length > 0 ? (
-                            couponTx.map((item) => <TransactionItem key={`coup-${item.id}`} item={item} />)
-                        ) : (
-                            <Text style={styles.emptyText}>No coupon transactions found</Text>
-                        )
-                    ) : (
-                        commissionTx.length > 0 ? (
-                            commissionTx.map((item) => (
-                                <TransactionItem
-                                    key={item.status ? `withdraw-${item.id}` : `comm-${item.id}`}
-                                    item={item}
-                                />
-                            ))
-                        ) : (
-                            <Text style={styles.emptyText}>No commission transactions found</Text>
-                        )
-                    )}
-                </View>
-            </ScrollView>
-        </View>
+        </ScreenBackground>
     );
 };
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: COLORS.background },
-    header: {
-        backgroundColor: COLORS.surface,
-        padding: SPACING.l,
+    container: { flex: 1, backgroundColor: 'transparent' },
+    balanceHeader: {
+        backgroundColor: 'rgba(255, 255, 255, 0.6)',
+        padding: SPACING.m,
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
-        borderBottomLeftRadius: 30,
-        borderBottomRightRadius: 30,
-        elevation: 5,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 5
+        margin: SPACING.m,
+        borderRadius: 15,
+        borderWidth: 1,
+        borderColor: COLORS.border,
     },
     headerDesktop: {
         paddingHorizontal: '10%',
@@ -265,35 +319,61 @@ const styles = StyleSheet.create({
     headerLabel: { color: COLORS.textSecondary, marginBottom: 4, fontSize: 15, textAlign: 'center' },
     balanceText: { fontSize: 32, color: COLORS.secondary, fontWeight: 'bold' },
 
+    // Section layout (matches Dashboard style)
+    section: {
+        width: Platform.OS === 'web' ? '98%' : '100%',
+        alignSelf: 'center',
+        marginBottom: 15,
+        borderRadius: 8,
+        overflow: 'hidden',
+    },
+    sectionDesktop: {
+        width: '98%',
+    },
+    sectionHeader: {
+        backgroundColor: 'rgba(248, 250, 252, 0.8)',
+        paddingVertical: 8,
+        paddingHorizontal: 15,
+        borderBottomWidth: 1,
+        borderBottomColor: '#e2e8f0',
+    },
+    sectionTitle: {
+        fontSize: 18,
+        fontWeight: 'bold',
+        color: '#1e293b',
+    },
+    sectionBody: {
+        backgroundColor: 'rgba(255, 255, 255, 0.85)',
+        padding: 15,
+        borderBottomWidth: 1,
+        borderBottomColor: '#eee',
+    },
+
+    // Wallet cards inside section
     cardsRow: {
         flexDirection: 'row',
-        padding: SPACING.m,
         justifyContent: 'space-between',
-        marginTop: SPACING.s
-    },
-    cardsRowDesktop: {
-        paddingHorizontal: '10%',
-        gap: 20,
+        gap: 12,
     },
     walletCard: {
-        width: (width - SPACING.m * 3) / 2,
+        flex: 1,
         backgroundColor: COLORS.surface,
-        borderRadius: 16,
+        borderRadius: 12,
         padding: SPACING.m,
         borderWidth: 1,
         borderColor: COLORS.border,
-        elevation: 2,
+        elevation: 1,
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.1,
+        shadowOpacity: 0.05,
         shadowRadius: 2,
     },
     walletCardDesktop: {
-        width: '45%',
+        flex: 1,
     },
     walletCardActive: {
         borderColor: COLORS.secondary,
-        backgroundColor: COLORS.secondary + '08', // very light tint
+        backgroundColor: COLORS.secondary + '08',
     },
     cardHeader: {
         flexDirection: 'row',
@@ -310,13 +390,13 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     cardTitle: {
-        fontSize: 16,
-        color: COLORS.textSecondary,
+        fontSize: 13,
+        color: '#64748b',
         fontWeight: '500',
         marginBottom: 4
     },
     cardBalance: {
-        fontSize: 26,
+        fontSize: 24,
         fontWeight: 'bold',
         color: COLORS.text,
         marginBottom: 8
@@ -328,7 +408,7 @@ const styles = StyleSheet.create({
         fontSize: 12,
         color: COLORS.textSecondary,
         fontStyle: 'italic',
-        marginTop: 6
+        marginTop: 4
     },
     withdrawBtn: {
         backgroundColor: COLORS.secondary,
@@ -341,31 +421,32 @@ const styles = StyleSheet.create({
     },
     withdrawBtnText: {
         color: '#fff',
-        fontSize: 14,
+        fontSize: 13,
         fontWeight: '600'
     },
 
-    transactionsContainer: { padding: SPACING.m, paddingBottom: 40 },
-    transactionsContainerDesktop: {
-        paddingHorizontal: '10%',
-    },
-    sectionTitle: { color: COLORS.text, fontSize: 20, fontWeight: 'bold', marginBottom: SPACING.m },
+    // Transaction rows (matches Dashboard card style)
     txItem: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: COLORS.surface,
+        backgroundColor: '#ffffff',
         padding: SPACING.m,
-        borderRadius: 12,
+        borderRadius: 8,
         marginBottom: SPACING.s,
         borderWidth: 1,
-        borderColor: COLORS.border
+        borderColor: '#f1f5f9',
+        elevation: 1,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.04,
+        shadowRadius: 2,
     },
     txIcon: { width: 36, height: 36, borderRadius: 18, justifyContent: 'center', alignItems: 'center' },
     txInfo: { flex: 1, marginLeft: SPACING.m, marginRight: SPACING.s },
-    txDesc: { color: COLORS.text, fontSize: 16, fontWeight: '600' },
-    txDate: { color: COLORS.textSecondary, fontSize: 13, marginTop: 4 },
-    txAmount: { fontSize: 17, fontWeight: 'bold' },
-    emptyText: { color: COLORS.textSecondary, textAlign: 'center', marginTop: 40 },
+    txDesc: { color: '#1e293b', fontSize: 15, fontWeight: '600' },
+    txDate: { color: '#64748b', fontSize: 12, marginTop: 3 },
+    txAmount: { fontSize: 16, fontWeight: 'bold' },
+    emptyText: { color: COLORS.textSecondary, textAlign: 'center', marginTop: 20 },
 
     miniBadge: { marginLeft: 8, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 },
     miniApproved: { backgroundColor: COLORS.success + '20' },

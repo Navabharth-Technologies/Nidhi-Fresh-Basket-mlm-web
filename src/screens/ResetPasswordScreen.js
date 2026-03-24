@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { StyleSheet, Text, View, TextInput, TouchableOpacity, ScrollView, Alert, ActivityIndicator, Image } from 'react-native';
 import apiClient from '../api/client';
 import { Lock, KeyRound, ChevronLeft } from 'lucide-react-native';
+import ScreenBackground from '../components/ScreenBackground';
 
 const ResetPasswordScreen = ({ navigation, route }) => {
     const { phone } = route.params || {};
@@ -9,6 +10,9 @@ const ResetPasswordScreen = ({ navigation, route }) => {
     const [newPassword, setNewPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
     const [loading, setLoading] = useState(false);
+    const [showPassword, setShowPassword] = useState(false);
+    const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+    const [focusedField, setFocusedField] = useState(null); // 'otp', 'new', 'confirm'
 
     const handleResetPassword = async () => {
         if (!otp || !newPassword || !confirmPassword) {
@@ -40,77 +44,104 @@ const ResetPasswordScreen = ({ navigation, route }) => {
     };
 
     return (
-        <ScrollView contentContainerStyle={styles.container}>
-            <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-                <ChevronLeft color="#1a531b" size={24} />
-                <Text style={styles.backText}>Back</Text>
-            </TouchableOpacity>
-
-            <View style={styles.header}>
-                <Image
-                    source={require('../../assets/nidhi_logo.png')}
-                    style={styles.logo}
-                    resizeMode="contain"
-                />
-                <Text style={styles.title}>Reset Password</Text>
-                <Text style={styles.subtitle}>Enter the 6-digit OTP sent to your email for phone {phone} and your new password.</Text>
-            </View>
-
-            <View style={styles.form}>
-                <View style={styles.inputContainer}>
-                    <KeyRound color="#666" size={20} style={styles.inputIcon} />
-                    <TextInput
-                        style={styles.input}
-                        placeholder="6-Digit OTP"
-                        value={otp}
-                        onChangeText={setOtp}
-                        keyboardType="number-pad"
-                        maxLength={6}
-                    />
-                </View>
-
-                <View style={styles.inputContainer}>
-                    <Lock color="#666" size={20} style={styles.inputIcon} />
-                    <TextInput
-                        style={styles.input}
-                        placeholder="New Password"
-                        value={newPassword}
-                        onChangeText={setNewPassword}
-                        secureTextEntry
-                    />
-                </View>
-
-                <View style={styles.inputContainer}>
-                    <Lock color="#666" size={20} style={styles.inputIcon} />
-                    <TextInput
-                        style={styles.input}
-                        placeholder="Confirm New Password"
-                        value={confirmPassword}
-                        onChangeText={setConfirmPassword}
-                        secureTextEntry
-                    />
-                </View>
-
+        <ScreenBackground>
+            <ScrollView contentContainerStyle={styles.container}>
                 <TouchableOpacity 
-                    style={styles.button} 
-                    onPress={handleResetPassword}
-                    disabled={loading}
+                    style={styles.backButton} 
+                    onPress={() => {
+                        if (navigation.canGoBack()) {
+                            navigation.goBack();
+                        } else {
+                            navigation.navigate('Login');
+                        }
+                    }}
                 >
-                    {loading ? (
-                        <ActivityIndicator color="#fff" />
-                    ) : (
-                        <Text style={styles.buttonText}>Reset Password</Text>
-                    )}
+                    <ChevronLeft color="#1a531b" size={24} />
+                    <Text style={styles.backText}>Back</Text>
                 </TouchableOpacity>
-            </View>
-        </ScrollView>
+
+                <View style={styles.header}>
+                    <Image
+                        source={require('../../assets/nidhi_logo.png')}
+                        style={styles.logo}
+                        resizeMode="contain"
+                    />
+                    <Text style={styles.title}>Reset Password</Text>
+                    <Text style={styles.subtitle}>Enter the 6-digit OTP sent to your phone {phone} and your new password.</Text>
+                </View>
+
+                <View style={styles.form}>
+                    <View style={[styles.inputContainer, focusedField === 'otp' && styles.inputContainerFocused]}>
+                        <KeyRound color="#1a531b" size={20} style={styles.inputIcon} />
+                        <TextInput
+                            style={styles.input}
+                            placeholder="6-Digit OTP"
+                            value={otp}
+                            onChangeText={setOtp}
+                            keyboardType="number-pad"
+                            maxLength={6}
+                            onFocus={() => setFocusedField('otp')}
+                            onBlur={() => setFocusedField(null)}
+                        />
+                    </View>
+
+                    <View style={[styles.inputContainer, focusedField === 'new' && styles.inputContainerFocused]}>
+                        <Lock color="#1a531b" size={20} style={styles.inputIcon} />
+                        <TextInput
+                            style={styles.input}
+                            placeholder="New Password"
+                            value={newPassword}
+                            onChangeText={setNewPassword}
+                            secureTextEntry={!showPassword}
+                            contextMenuHidden={!showPassword}
+                            selectTextOnFocus={showPassword}
+                            onFocus={() => setFocusedField('new')}
+                            onBlur={() => setFocusedField(null)}
+                        />
+                        <TouchableOpacity onPress={() => setShowPassword(!showPassword)} style={styles.eyeIconBtn}>
+                            <Lock size={18} color={showPassword ? "#1a531b" : "#ccc"} />
+                        </TouchableOpacity>
+                    </View>
+
+                    <View style={[styles.inputContainer, focusedField === 'confirm' && styles.inputContainerFocused]}>
+                        <Lock color="#1a531b" size={20} style={styles.inputIcon} />
+                        <TextInput
+                            style={styles.input}
+                            placeholder="Confirm New Password"
+                            value={confirmPassword}
+                            onChangeText={setConfirmPassword}
+                            secureTextEntry={!showConfirmPassword}
+                            contextMenuHidden={!showConfirmPassword}
+                            selectTextOnFocus={showConfirmPassword}
+                            onFocus={() => setFocusedField('confirm')}
+                            onBlur={() => setFocusedField(null)}
+                        />
+                        <TouchableOpacity onPress={() => setShowConfirmPassword(!showConfirmPassword)} style={styles.eyeIconBtn}>
+                            <Lock size={18} color={showConfirmPassword ? "#1a531b" : "#ccc"} />
+                        </TouchableOpacity>
+                    </View>
+
+                    <TouchableOpacity 
+                        style={styles.button} 
+                        onPress={handleResetPassword}
+                        disabled={loading}
+                    >
+                        {loading ? (
+                            <ActivityIndicator color="#fff" />
+                        ) : (
+                            <Text style={styles.buttonText}>Reset Password</Text>
+                        )}
+                    </TouchableOpacity>
+                </View>
+            </ScrollView>
+        </ScreenBackground>
     );
 };
 
 const styles = StyleSheet.create({
     container: {
         flexGrow: 1,
-        backgroundColor: '#fff',
+        backgroundColor: 'transparent',
         padding: 20,
     },
     backButton: {
@@ -158,6 +189,11 @@ const styles = StyleSheet.create({
         paddingHorizontal: 12,
         marginBottom: 15,
         height: 50,
+        backgroundColor: 'rgba(255, 255, 255, 0.85)',
+    },
+    inputContainerFocused: {
+        borderColor: '#1a531b',
+        borderWidth: 2,
     },
     inputIcon: {
         marginRight: 10,
@@ -186,6 +222,10 @@ const styles = StyleSheet.create({
         fontSize: 16,
         fontWeight: 'bold',
     },
+    eyeIconBtn: {
+        padding: 5,
+        marginLeft: 5,
+    }
 });
 
 export default ResetPasswordScreen;

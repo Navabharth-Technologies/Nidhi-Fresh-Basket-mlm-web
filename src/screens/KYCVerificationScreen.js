@@ -1,11 +1,25 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { StyleSheet, Text, View, ScrollView, TouchableOpacity, TextInput, Alert, Platform, ActivityIndicator, Image, useWindowDimensions } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { COLORS, SPACING, SIZES } from '../theme/theme';
 import apiClient from '../api/client';
 import { useAuth } from '../store/AuthContext';
-import { CheckCircle, Upload, ArrowLeft, FileText, Camera, CreditCard, ChevronRight } from 'lucide-react-native';
+import { CheckCircle, Upload, ArrowLeft, FileText, Camera, CreditCard, ChevronRight, TrendingUp } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
+
+// Framer Motion for Web animations
+let motion = { div: View, span: Text };
+if (Platform.OS === 'web') {
+    try {
+        const { motion: fm } = require('framer-motion');
+        motion = fm;
+    } catch (e) {
+        console.warn('Framer Motion not available', e);
+    }
+}
+
+import MainHeader from '../components/MainHeader';
+import ScreenBackground from '../components/ScreenBackground';
 
 const KYCVerificationScreen = ({ navigation, route }) => {
     const { width } = useWindowDimensions();
@@ -15,13 +29,19 @@ const KYCVerificationScreen = ({ navigation, route }) => {
     const [kycStatus, setKycStatus] = useState(null); // 'Not Submitted', 'pending', 'approved', 'rejected'
     const [loading, setLoading] = useState(true);
     const [submitting, setSubmitting] = useState(false);
-    const [showSuccessCard, setShowSuccessCard] = useState(true);
+    const [purchasedPackages, setPurchasedPackages] = useState([]);
+    const [showSuccessCard, setShowSuccessCard] = useState(!route.params?.jumpToStep);
+    const isRejected = kycStatus?.toLowerCase() === 'rejected';
+    const isRepurchaseMode = !!route.params?.jumpToStep; // True when user is repurchasing a package
 
     const [form, setForm] = useState({
         package_name: '',
         package_amount: '',
         aadhar_number: '',
         pan_number: '',
+        bank_account_number: '',
+        ifsc_code: '',
+        upi_id: '',
         transaction_id: '',
     });
 
@@ -30,6 +50,7 @@ const KYCVerificationScreen = ({ navigation, route }) => {
         aadhar_image: null,
         pan_image: null,
     });
+    const webFilesRef = useRef({});
     const [prefilledImages, setPrefilledImages] = useState({
         aadhar_image: null,
         pan_image: null,
@@ -42,31 +63,61 @@ const KYCVerificationScreen = ({ navigation, route }) => {
     ];
 
     useEffect(() => {
-        fetchKYCStatus();
-        fetchPrefillKYC();
-
-        if (route.params?.selectedPackage) {
-            setForm(prev => ({
-                ...prev,
-                package_name: route.params.selectedPackage.name,
-                package_amount: route.params.selectedPackage.amount
-            }));
-            if (route.params?.jumpToStep) {
-                setCurrentStep(route.params.jumpToStep);
-                setShowSuccessCard(false);
+        const initialize = async () => {
+            setLoading(true);
+            await Promise.all([
+                fetchKYCStatus(),
+                fetchPackages()
+            ]);
+            const prefilled = await fetchPrefillKYC();
+            
+            if (route.params?.packageName) {
+                setForm(prev => ({
+                    ...prev,
+                    package_name: route.params.packageName,
+                    package_amount: route.params.packageAmount ? String(route.params.packageAmount) : ''
+                }));
+                
+                if (route.params?.jumpToStep) {
+                    // Only jump if we have the critical data (Bank & IFSC) from prefill
+                    const hasBank = prefilled && prefilled.bank_account_number && prefilled.ifsc_code;
+                    
+                    if (hasBank) {
+                        setCurrentStep(route.params.jumpToStep);
+                        setShowSuccessCard(false);
+                    } else {
+                        console.log('Prefill incomplete, forcing Step 1 for data entry.');
+                        setCurrentStep(1);
+                        setShowSuccessCard(false);
+                    }
+                }
             }
+            setLoading(false);
+        };
+        initialize();
+    }, [route.params?.packageName, route.params?.packageAmount, route.params?.jumpToStep]);
+
+    const fetchPackages = async () => {
+        try {
+            const res = await apiClient.get('/users/purchased-package');
+            setPurchasedPackages(Array.isArray(res.data) ? res.data : []);
+        } catch (e) {
+            console.log('Fetch Packages Error:', e);
         }
-    }, [route.params?.selectedPackage, route.params?.jumpToStep]);
+    };
 
     const fetchPrefillKYC = async () => {
         try {
             const res = await apiClient.get('/kyc/prefill');
             if (res.data.success && res.data.data) {
-                const { id, aadhar_number, pan_number, aadhar_image, pan_image } = res.data.data;
+                const { id, aadhar_number, pan_number, bank_account_number, ifsc_code, upi_id, aadhar_image, pan_image } = res.data.data;
                 setForm(prev => ({
                     ...prev,
                     aadhar_number: aadhar_number || '',
                     pan_number: pan_number || '',
+                    bank_account_number: bank_account_number || '',
+                    ifsc_code: ifsc_code || '',
+                    upi_id: upi_id || '',
                 }));
 
                 // Use the binary serving endpoint for prefilled images
@@ -84,9 +135,13 @@ const KYCVerificationScreen = ({ navigation, route }) => {
                     aadhar_image: aadhar_image,
                     pan_image: pan_image,
                 });
+                
+                return res.data.data; // Return data for coordination
             }
+            return null;
         } catch (e) {
             console.log('Prefill Error:', e);
+            return null;
         }
     };
 
@@ -103,6 +158,9 @@ const KYCVerificationScreen = ({ navigation, route }) => {
                     package_amount: String(res.data.package_amount || ''),
                     aadhar_number: res.data.aadhar_number || '',
                     pan_number: res.data.pan_number || '',
+                    bank_account_number: res.data.bank_account_number || '',
+                    ifsc_code: res.data.ifsc_code || '',
+                    upi_id: res.data.upi_id || '',
                     transaction_id: res.data.transaction_id || '',
                     admin_remark: res.data.rejection_reason || '' // Match backend alias
                 });
@@ -110,28 +168,29 @@ const KYCVerificationScreen = ({ navigation, route }) => {
             }
         } catch (e) {
             console.error('Fetch KYC Status Error:', e);
-        } finally {
-            setLoading(false);
         }
+    };
+
+    const pickImageWeb = (field) => {
+        // Use native HTML file input with accept="image/*"
+        // On mobile browsers this automatically prompts Camera + Gallery choice
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = 'image/*';
+        input.onchange = (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                const uri = URL.createObjectURL(file);
+                webFilesRef.current[field] = file;
+                setImages(prev => ({ ...prev, [field]: uri }));
+            }
+        };
+        input.click();
     };
 
     const pickImage = async (field) => {
         if (Platform.OS === 'web') {
-            // Standard web picker
-            const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-            if (status !== 'granted') {
-                alert('Gallery permissions are required.');
-                return;
-            }
-            let result = await ImagePicker.launchImageLibraryAsync({
-                mediaTypes: ['images'],
-                allowsEditing: true,
-                aspect: [4, 3],
-                quality: 0.7,
-            });
-            if (!result.canceled) {
-                setImages({ ...images, [field]: result.assets[0].uri });
-            }
+            pickImageWeb(field);
         } else {
             // Mobile: Show Choice
             Alert.alert(
@@ -178,7 +237,7 @@ const KYCVerificationScreen = ({ navigation, route }) => {
             }
 
             let result = await ImagePicker.launchImageLibraryAsync({
-                mediaTypes: ['images'],
+                mediaTypes: ImagePicker.MediaTypeOptions.Images,
                 allowsEditing: true,
                 aspect: [4, 3],
                 quality: 0.7,
@@ -194,12 +253,43 @@ const KYCVerificationScreen = ({ navigation, route }) => {
     };
 
     const handleNext = () => {
+        console.log('handleNext clicked, currentStep:', currentStep);
         if (currentStep === 1) {
             // KYC Form
-            if (!form.aadhar_number || !form.pan_number || !images.aadhar_image || !images.pan_image) {
-                Alert.alert('Missing Info', 'Please fill Aadhar/PAN and upload document images.');
+            const { aadhar_number, pan_number, bank_account_number, ifsc_code, upi_id } = form;
+            const { aadhar_image, pan_image } = images;
+
+            if (!aadhar_number || !pan_number || !bank_account_number || !ifsc_code || !aadhar_image || !pan_image) {
+                const msg = 'Please fill all KYC fields and upload document images.';
+                if (Platform.OS === 'web') window.alert(msg);
+                else Alert.alert('Missing Info', msg);
                 return;
             }
+            if (aadhar_number.length !== 12 || /^(.)\1{11}$/.test(aadhar_number)) {
+                const msg = 'Please enter a valid 12-digit Aadhaar number.';
+                if (Platform.OS === 'web') window.alert(msg);
+                else Alert.alert('Invalid Aadhaar', msg);
+                return;
+            }
+            if (!/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/.test(pan_number)) {
+                const msg = 'Please enter a valid PAN format (e.g. ABCDE1234F).';
+                if (Platform.OS === 'web') window.alert(msg);
+                else Alert.alert('Invalid PAN', msg);
+                return;
+            }
+            if (!/^[A-Z]{4}0[A-Z0-9]{6}$/.test(ifsc_code)) {
+                const msg = 'Please enter a valid 11-character IFSC code (e.g., SBIN0012345). Your input is currently ' + ifsc_code.length + ' characters.';
+                if (Platform.OS === 'web') window.alert(msg);
+                else Alert.alert('Invalid IFSC', msg);
+                return;
+            }
+            if (upi_id && !upi_id.includes('@')) {
+                const msg = 'Please enter a valid UPI ID (e.g. name@upi).';
+                if (Platform.OS === 'web') window.alert(msg);
+                else Alert.alert('Invalid UPI', msg);
+                return;
+            }
+            console.log('Validation passed, moving to step 2');
             setCurrentStep(2);
         } else if (currentStep === 2) {
             // Select Package
@@ -215,26 +305,50 @@ const KYCVerificationScreen = ({ navigation, route }) => {
     };
 
     const handleSubmit = async () => {
+        console.log('handleSubmit called, Step 4');
         const { aadhar_number, pan_number, transaction_id } = form;
-        const isRejected = kycStatus && kycStatus.toLowerCase() === 'rejected';
+
+        // Helper for consistent alerts
+        const showAlert = (title, msg) => {
+            if (Platform.OS === 'web') window.alert(`${title}: ${msg}`);
+            else Alert.alert(title, msg);
+        };
 
         // Detailed validation for better user feedback
-        if (!aadhar_number) return Alert.alert('Error', 'Aadhar number is missing.');
-        if (!pan_number) return Alert.alert('Error', 'PAN number is missing.');
-        if (!transaction_id) return Alert.alert('Error', 'Transaction ID is required for payment verification.');
-        if (!images.aadhar_image) return Alert.alert('Error', 'Please upload Aadhar card image.');
-        if (!images.pan_image) return Alert.alert('Error', 'Please upload PAN card image.');
+        if (!aadhar_number) return showAlert('Error', 'Aadhar number is missing.');
+        if (!pan_number) return showAlert('Error', 'PAN number is missing.');
+        if (!form.bank_account_number) return showAlert('Error', 'Bank Account number is missing.');
+        if (!form.ifsc_code) return showAlert('Error', 'IFSC code is missing.');
+        if (!transaction_id) return showAlert('Error', 'Transaction ID is required for payment verification.');
+        if (!images.aadhar_image) return showAlert('Error', 'Please upload Aadhar card image.');
+        if (!images.pan_image) return showAlert('Error', 'Please upload PAN card image.');
         if (!isRejected && !images.payment_screenshot) {
-            return Alert.alert('Error', 'Please upload the payment screenshot.');
+            return showAlert('Error', 'Please upload the payment screenshot.');
         }
 
+        console.log('Final validation passed, preparing payload...');
         setSubmitting(true);
         try {
             const formData = new FormData();
-            Object.keys(form).forEach(key => formData.append(key, form[key]));
+            Object.keys(form).forEach(key => {
+                if (form[key] !== null && form[key] !== undefined) {
+                    formData.append(key, form[key]);
+                }
+            });
+
+            // Log FormData for debugging
+            console.log('--- FORM DATA PREVIEW ---');
+            for (let [key, value] of formData.entries()) {
+                console.log(`${key}: ${value}`);
+            }
 
             const getFileData = async (uri, fieldName) => {
+                console.log(`Processing file: ${fieldName}, URI: ${uri}`);
                 if (Platform.OS === 'web') {
+                    // Use stored File object if available (from our HTML input)
+                    if (webFilesRef.current[fieldName]) {
+                        return webFilesRef.current[fieldName];
+                    }
                     const response = await fetch(uri);
                     const blob = await response.blob();
                     const fileName = uri.split('/').pop().split('?')[0] || `${fieldName}.jpg`;
@@ -247,11 +361,12 @@ const KYCVerificationScreen = ({ navigation, route }) => {
                 }
             };
 
-            if (images.payment_screenshot) formData.append('payment_screenshot', await getFileData(images.payment_screenshot, 'payment'));
+            if (images.payment_screenshot) {
+                formData.append('payment_screenshot', await getFileData(images.payment_screenshot, 'payment'));
+            }
 
             if (images.aadhar_image) {
                 if (images.aadhar_image.startsWith('http')) {
-                    // It's a prefilled image url, don't re-upload file, just send filename
                     formData.append('aadhar_image', prefilledImages.aadhar_image);
                 } else {
                     formData.append('aadhar_image', await getFileData(images.aadhar_image, 'aadhar'));
@@ -260,7 +375,6 @@ const KYCVerificationScreen = ({ navigation, route }) => {
 
             if (images.pan_image) {
                 if (images.pan_image.startsWith('http')) {
-                    // It's a prefilled image url, don't re-upload file, just send filename
                     formData.append('pan_image', prefilledImages.pan_image);
                 } else {
                     formData.append('pan_image', await getFileData(images.pan_image, 'pan'));
@@ -270,10 +384,9 @@ const KYCVerificationScreen = ({ navigation, route }) => {
             const endpoint = kycStatus && kycStatus.toLowerCase() === 'rejected' ? 'user/resubmit-kyc' : 'submit';
             const kycApiUrl = `${apiClient.defaults.baseURL}/kyc`.replace(/\/+$/, '');
 
-            // Get token for fetch request
             const token = await AsyncStorage.getItem('token');
+            console.log('Submitting to:', `${kycApiUrl}/${endpoint}`);
 
-            // SENIOR ENGINEER FIX: Use Fetch + FormData + Headers
             const response = await fetch(`${kycApiUrl}/${endpoint}`, {
                 method: 'POST',
                 headers: {
@@ -282,23 +395,19 @@ const KYCVerificationScreen = ({ navigation, route }) => {
                 body: formData
             });
 
+            console.log('Response status:', response.status);
             const data = await response.json();
+            console.log('Response data:', data);
 
             if (response.ok) {
-                Alert.alert('Success', data.msg || 'KYC Submitted Successfully');
+                showAlert('Success', data.msg || 'KYC Submitted Successfully');
                 navigation.goBack();
             } else {
-                console.error('Submission Failed:', data);
-                Alert.alert('Error', data.msg || 'Failed to submit KYC');
+                showAlert('Error', data.msg || 'Failed to submit KYC');
             }
         } catch (e) {
             console.error('Submit Error:', e);
-            if (e.response && e.response.data) {
-                console.error('Server Error Data:', e.response.data);
-                Alert.alert('Error', e.response.data.msg || 'Failed to submit KYC');
-            } else {
-                Alert.alert('Error', 'Network error or server is down');
-            }
+            showAlert('Error', 'Network error or server is down. Check console for details.');
         } finally {
             setSubmitting(false);
         }
@@ -313,52 +422,77 @@ const KYCVerificationScreen = ({ navigation, route }) => {
     }
 
     if (kycStatus && kycStatus.toLowerCase() === 'pending') {
+        const isRepurchasePending = purchasedPackages.length > 0;
         return (
-            <View style={styles.container}>
-                <View style={[styles.statusCard, isDesktop && styles.statusCardDesktop]}>
-                    <CheckCircle color="#f59e0b" size={64} style={{ marginBottom: 20 }} />
-                    <Text style={styles.statusTitle}>KYC Pending</Text>
-                    <Text style={styles.statusDesc}>Your KYC is currently under review by the admin. This usually takes 24-48 hours.</Text>
-                    <TouchableOpacity style={styles.backBtnLarge} onPress={() => navigation.goBack()}>
-                        <Text style={styles.backBtnText}>Back to Dashboard</Text>
-                    </TouchableOpacity>
+            <ScreenBackground>
+                <View style={styles.container}>
+                    <MainHeader title={isRepurchasePending ? "Package Status" : "KYC Status"} navigation={navigation} showBack hideProfile={true} />
+                    <View style={[styles.statusCard, isDesktop && styles.statusCardDesktop]}>
+                        {isRepurchasePending ? (
+                            <TrendingUp color="#f59e0b" size={64} style={{ marginBottom: 20 }} />
+                        ) : (
+                            <CheckCircle color="#f59e0b" size={64} style={{ marginBottom: 20 }} />
+                        )}
+                        <Text style={styles.statusTitle}>{isRepurchasePending ? "Package Repurchase Pending" : "KYC Pending"}</Text>
+                        <Text style={styles.statusDesc}>
+                            {isRepurchasePending 
+                                ? `Your request for the ${form.package_name || 'new'} package is under review. Your identity is already verified.` 
+                                : "Your KYC is currently under review by the admin. This usually takes 24-48 hours."}
+                        </Text>
+                        <TouchableOpacity 
+                            style={styles.backBtnLarge} 
+                            onPress={() => navigation.navigate('Main')}
+                        >
+                            <Text style={styles.backBtnText}>Back to Dashboard</Text>
+                        </TouchableOpacity>
+                    </View>
                 </View>
-            </View>
+            </ScreenBackground>
         );
     }
 
-    if (kycStatus && kycStatus.toLowerCase() === 'approved' && showSuccessCard) {
+    if (kycStatus && kycStatus.toLowerCase() === 'approved' && showSuccessCard && !isRepurchaseMode) {
         return (
-            <View style={styles.container}>
-                <View style={[styles.statusCard, isDesktop && styles.statusCardDesktop]}>
-                    <CheckCircle color="#10b981" size={64} style={{ marginBottom: 20 }} />
-                    <Text style={styles.statusTitle}>KYC Approved</Text>
-                    <Text style={styles.statusDesc}>Your KYC has been verified successfully. You can now enjoy full access to the MLM system.</Text>
-                    <TouchableOpacity style={styles.backBtnLarge} onPress={() => navigation.goBack()}>
-                        <Text style={styles.backBtnText}>Great!</Text>
-                    </TouchableOpacity>
+            <ScreenBackground>
+                <View style={styles.container}>
+                    <MainHeader title="KYC Status" navigation={navigation} showBack hideProfile={true} />
+                    <View style={[styles.statusCard, isDesktop && styles.statusCardDesktop]}>
+                        <CheckCircle color="#10b981" size={64} style={{ marginBottom: 20 }} />
+                        <Text style={styles.statusTitle}>KYC Approved</Text>
+                        <Text style={styles.statusDesc}>Your KYC has been verified successfully. You can now enjoy full access to the MLM system.</Text>
+                        <TouchableOpacity 
+                            style={styles.backBtnLarge} 
+                            onPress={() => navigation.navigate('Main')}
+                        >
+                            <Text style={styles.backBtnText}>Go to Dashboard</Text>
+                        </TouchableOpacity>
+                    </View>
                 </View>
-            </View>
+            </ScreenBackground>
         );
     }
 
     return (
-        <ScrollView style={styles.container} contentContainerStyle={[styles.content, isDesktop && styles.contentDesktop]}>
-            <View style={[styles.header, isDesktop && styles.headerDesktop]}>
-                <TouchableOpacity onPress={() => {
-                    const isRejected = kycStatus && kycStatus.toLowerCase() === 'rejected';
-                    if (isRejected || currentStep === 1 || (currentStep === 2 && !showSuccessCard)) {
-                        navigation.goBack();
-                    } else {
-                        setCurrentStep(currentStep - 1);
-                    }
-                }}>
-                    <ArrowLeft color="#333" size={24} />
-                </TouchableOpacity>
-                <Text style={styles.headerTitle}>
-                    {kycStatus?.toLowerCase() === 'rejected' ? 'KYC Resubmission' : 'KYC & Purchase'}
-                </Text>
-            </View>
+        <ScreenBackground>
+            <View style={styles.container}>
+                <MainHeader 
+                    title={isRejected ? 'KYC Resubmission' : (isRepurchaseMode ? 'Purchase' : 'KYC & Purchase')} 
+                    navigation={navigation} 
+                    showBack
+                    hideProfile={true}
+                    onBackPress={() => {
+                        if (isRejected || currentStep === 1 || (route.params?.jumpToStep && currentStep === route.params.jumpToStep)) {
+                            if (navigation.canGoBack()) {
+                                navigation.goBack();
+                            } else {
+                                navigation.navigate('Main');
+                            }
+                        } else {
+                            setCurrentStep(currentStep - 1);
+                        }
+                    }}
+                />
+                <ScrollView contentContainerStyle={[styles.content, isDesktop && styles.contentDesktop]}>
 
             {kycStatus && kycStatus.toLowerCase() === 'rejected' && (
                 <View style={styles.rejectAlert}>
@@ -368,16 +502,70 @@ const KYCVerificationScreen = ({ navigation, route }) => {
             )}
 
             {/* Progress Stepper */}
-            <View style={styles.stepper}>
-                {[1, 2, 3, 4].map((s) => (
-                    <View key={s} style={styles.stepItem}>
-                        <View style={[styles.stepCircle, currentStep >= s ? styles.stepActive : styles.stepInactive]}>
-                            <Text style={styles.stepNum}>{s}</Text>
+            {isRepurchaseMode ? (
+                // Repurchase: show only 2 steps (QR Payment + Confirmation)
+                <View style={styles.stepper}>
+                    {[1, 2].map((s) => {
+                        const actualStep = s === 1 ? 3 : 4;
+                        return (
+                            <View key={s} style={styles.stepItem}>
+                                <motion.div
+                                    animate={currentStep === actualStep ? { scale: [1, 1.15, 1] } : { scale: 1 }}
+                                    transition={{ duration: 0.4 }}
+                                    style={StyleSheet.flatten([
+                                        styles.stepCircle,
+                                        currentStep >= actualStep ? styles.stepActive : styles.stepInactive
+                                    ])}
+                                >
+                                    <Text style={styles.stepNum}>{s}</Text>
+                                </motion.div>
+                                {s < 2 && (
+                                    <View style={[styles.stepLine, styles.lineInactive]}>
+                                        <motion.div
+                                            initial={{ width: 0 }}
+                                            animate={{ width: currentStep > actualStep ? '100%' : '0%' }}
+                                            transition={{ duration: 0.5, ease: 'easeInOut' }}
+                                            style={{ backgroundColor: '#852834', height: '100%', borderRadius: 2 }}
+                                        />
+                                    </View>
+                                )}
+                            </View>
+                        );
+                    })}
+                </View>
+            ) : (
+                // Normal purchase: show all 4 steps
+                <View style={styles.stepper}>
+                    {[1, 2, 3, 4].map((s) => (
+                        <View key={s} style={styles.stepItem}>
+                            <motion.div 
+                                animate={currentStep === s ? { scale: [1, 1.15, 1] } : { scale: 1 }}
+                                transition={{ duration: 0.4 }}
+                                style={StyleSheet.flatten([
+                                    styles.stepCircle, 
+                                    currentStep >= s ? styles.stepActive : styles.stepInactive
+                                ])}
+                            >
+                                <Text style={styles.stepNum}>{s}</Text>
+                            </motion.div>
+                            {s < 4 && (
+                                <View style={[styles.stepLine, styles.lineInactive]}>
+                                    <motion.div 
+                                        initial={{ width: 0 }}
+                                        animate={{ width: currentStep > s ? '100%' : '0%' }}
+                                        transition={{ duration: 0.5, ease: "easeInOut" }}
+                                        style={{
+                                            backgroundColor: '#852834',
+                                            height: '100%',
+                                            borderRadius: 2
+                                        }}
+                                    />
+                                </View>
+                            )}
                         </View>
-                        {s < 4 && <View style={[styles.stepLine, currentStep > s ? styles.lineActive : styles.lineInactive]} />}
-                    </View>
-                ))}
-            </View>
+                    ))}
+                </View>
+            )}
 
             {currentStep === 1 && (
                 <View style={[styles.stepContent, isDesktop && styles.stepContentDesktop]}>
@@ -389,7 +577,7 @@ const KYCVerificationScreen = ({ navigation, route }) => {
                             style={styles.input}
                             placeholder="12-digit Aadhar Number"
                             value={form.aadhar_number}
-                            onChangeText={(v) => setForm({ ...form, aadhar_number: v })}
+                            onChangeText={(v) => setForm({ ...form, aadhar_number: v.replace(/[^0-9]/g, '') })}
                             keyboardType="numeric"
                             maxLength={12}
                         />
@@ -401,9 +589,45 @@ const KYCVerificationScreen = ({ navigation, route }) => {
                             style={styles.input}
                             placeholder="Valid PAN (ABCDE1234F)"
                             value={form.pan_number}
-                            onChangeText={(v) => setForm({ ...form, pan_number: v })}
+                            onChangeText={(v) => setForm({ ...form, pan_number: v.toUpperCase().replace(/[^A-Z0-9]/g, '') })}
                             autoCapitalize="characters"
                             maxLength={10}
+                        />
+                    </View>
+
+                    <View style={styles.inputGroup}>
+                        <Text style={styles.label}>Bank Account Number</Text>
+                        <TextInput
+                            style={styles.input}
+                            placeholder="Bank Account Number"
+                            value={form.bank_account_number}
+                            onChangeText={(v) => setForm({ ...form, bank_account_number: v.replace(/[^0-9]/g, '') })}
+                            keyboardType="numeric"
+                            maxLength={20}
+                        />
+                    </View>
+
+                    <View style={styles.inputGroup}>
+                        <Text style={styles.label}>IFSC Code</Text>
+                        <TextInput
+                            style={styles.input}
+                            placeholder="Bank IFSC Code (e.g. SBIN0012345)"
+                            value={form.ifsc_code}
+                            onChangeText={(v) => setForm({ ...form, ifsc_code: v.toUpperCase().replace(/[^A-Z0-9]/g, '') })}
+                            autoCapitalize="characters"
+                            maxLength={11}
+                        />
+                    </View>
+                    
+                    <View style={styles.inputGroup}>
+                        <Text style={styles.label}>UPI ID (optional)</Text>
+                        <TextInput
+                            style={styles.input}
+                            placeholder="example@upi"
+                            value={form.upi_id}
+                            onChangeText={(v) => setForm({ ...form, upi_id: v.toLowerCase().replace(/\s/g, '') })}
+                            autoCapitalize="none"
+                            maxLength={50}
                         />
                     </View>
 
@@ -428,7 +652,10 @@ const KYCVerificationScreen = ({ navigation, route }) => {
                         </TouchableOpacity>
                     </View>
 
-                    <TouchableOpacity style={styles.nextBtn} onPress={handleNext}>
+                    <TouchableOpacity 
+                        style={styles.nextBtn} 
+                        onPress={handleNext}
+                    >
                         <Text style={styles.nextBtnText}>Continue to Package</Text>
                     </TouchableOpacity>
                 </View>
@@ -452,7 +679,10 @@ const KYCVerificationScreen = ({ navigation, route }) => {
                             </TouchableOpacity>
                         ))}
                     </View>
-                    <TouchableOpacity style={styles.nextBtn} onPress={handleNext}>
+                    <TouchableOpacity 
+                        style={styles.nextBtn} 
+                        onPress={handleNext}
+                    >
                         <Text style={styles.nextBtnText}>Select & Pay</Text>
                     </TouchableOpacity>
                 </View>
@@ -460,7 +690,7 @@ const KYCVerificationScreen = ({ navigation, route }) => {
 
             {currentStep === 3 && (
                 <View style={[styles.stepContent, isDesktop && styles.stepContentDesktop]}>
-                    <Text style={styles.sectionTitle}>Step 3: QR Code Payment</Text>
+                    <Text style={styles.sectionTitle}>{isRepurchaseMode ? 'Step 1: QR Code Payment' : 'Step 3: QR Code Payment'}</Text>
                     <View style={styles.qrContainer}>
                         <Image source={require('../assets/qr_code.png')} style={styles.qrImage} />
                         <View style={styles.payDetails}>
@@ -469,7 +699,10 @@ const KYCVerificationScreen = ({ navigation, route }) => {
                         </View>
                         <Text style={styles.qrInstruction}>"Scan the QR code and pay the exact amount."</Text>
                     </View>
-                    <TouchableOpacity style={styles.nextBtn} onPress={handleNext}>
+                    <TouchableOpacity 
+                        style={styles.nextBtn} 
+                        onPress={handleNext}
+                    >
                         <Text style={styles.nextBtnText}>I Have Paid (Upload Screenshot)</Text>
                     </TouchableOpacity>
                 </View>
@@ -477,7 +710,7 @@ const KYCVerificationScreen = ({ navigation, route }) => {
 
             {currentStep === 4 && (
                 <View style={[styles.stepContent, isDesktop && styles.stepContentDesktop]}>
-                    <Text style={styles.sectionTitle}>Step 4: Payment Confirmation</Text>
+                    <Text style={styles.sectionTitle}>{isRepurchaseMode ? 'Step 2: Payment Confirmation' : 'Step 4: Payment Confirmation'}</Text>
                     
                     <View style={styles.inputGroup}>
                         <Text style={styles.label}>Transaction ID</Text>
@@ -485,7 +718,8 @@ const KYCVerificationScreen = ({ navigation, route }) => {
                             style={styles.input}
                             placeholder="Enter UPI Transaction ID from payment"
                             value={form.transaction_id}
-                            onChangeText={(v) => setForm({ ...form, transaction_id: v })}
+                            onChangeText={(v) => setForm({ ...form, transaction_id: v.replace(/[^a-zA-Z0-9]/g, '') })}
+                            maxLength={30}
                         />
                     </View>
 
@@ -515,11 +749,13 @@ const KYCVerificationScreen = ({ navigation, route }) => {
                 </View>
             )}
         </ScrollView>
+        </View>
+    </ScreenBackground>
     );
 };
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: '#f3f4f6' },
+    container: { flex: 1, backgroundColor: 'transparent' },
     center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
     content: { padding: 20 },
     contentDesktop: {
@@ -529,7 +765,7 @@ const styles = StyleSheet.create({
     headerDesktop: { width: '100%', maxWidth: 800 },
     headerTitle: { fontSize: 20, fontWeight: 'bold', marginLeft: 15, color: '#111' },
 
-    statusCard: { flex: 1, backgroundColor: '#fff', margin: 40, borderRadius: 24, padding: 30, alignItems: 'center', justifyContent: 'center', elevation: 4 },
+    statusCard: { flex: 1, backgroundColor: 'rgba(255, 255, 255, 0.88)', margin: 40, borderRadius: 24, padding: 30, alignItems: 'center', justifyContent: 'center', elevation: 4, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.08, shadowRadius: 8 },
     statusCardDesktop: {
         maxWidth: 600,
         alignSelf: 'center',
@@ -547,15 +783,15 @@ const styles = StyleSheet.create({
 
     stepper: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', marginBottom: 30 },
     stepItem: { flexDirection: 'row', alignItems: 'center' },
-    stepCircle: { width: 32, height: 32, borderRadius: 16, justifyContent: 'center', alignItems: 'center' },
-    stepActive: { backgroundColor: '#1a531b' },
+    stepCircle: { width: 32, height: 32, borderRadius: 16, justifyContent: 'center', alignItems: 'center', display: 'flex' },
+    stepActive: { backgroundColor: '#852834' },
     stepInactive: { backgroundColor: '#d1d5db' },
     stepNum: { color: '#fff', fontWeight: 'bold' },
-    stepLine: { width: 40, height: 4, marginHorizontal: 5 },
-    lineActive: { backgroundColor: '#1a531b' },
-    lineInactive: { backgroundColor: '#d1d5db' },
+    stepLine: { width: 40, height: 4, marginHorizontal: 5, overflow: 'hidden' },
+    lineInactive: { backgroundColor: '#e5e7eb' },
 
-    stepContent: { backgroundColor: '#fff', borderRadius: 20, padding: 20, elevation: 2, width: '100%' },
+
+    stepContent: { backgroundColor: 'rgba(255, 255, 255, 0.88)', borderRadius: 20, padding: 20, elevation: 2, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.08, shadowRadius: 8, width: '100%' },
     stepContentDesktop: {
         maxWidth: 800,
     },
@@ -586,7 +822,7 @@ const styles = StyleSheet.create({
 
     inputGroup: { marginBottom: 16 },
     label: { fontSize: 14, fontWeight: '600', color: '#374151', marginBottom: 6 },
-    input: { backgroundColor: '#f9fafb', borderWidth: 1, borderColor: '#e5e7eb', borderRadius: 10, padding: 12, fontSize: 16 },
+    input: { backgroundColor: 'rgba(255, 255, 255, 0.9)', borderWidth: 1, borderColor: '#e5e7eb', borderRadius: 10, padding: 12, fontSize: 16 },
 
     docRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 12 },
     docItem: { flex: 1, flexDirection: 'row', alignItems: 'center', backgroundColor: '#f9fafb', borderWidth: 1, borderColor: '#e5e7eb', borderRadius: 10, padding: 12, marginHorizontal: 4, marginBottom: 12 },

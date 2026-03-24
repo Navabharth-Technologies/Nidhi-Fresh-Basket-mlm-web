@@ -2,8 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { StyleSheet, Text, View, ScrollView, RefreshControl, TouchableOpacity, TextInput, Alert, Platform, ActivityIndicator, Image, useWindowDimensions } from 'react-native';
 import { COLORS, SPACING, SIZES } from '../theme/theme';
 import apiClient from '../api/client';
-import { Wallet, Users, Package, TrendingUp, AlertCircle, CheckCircle, Clock, FileText, Upload, ArrowLeft, LogOut } from 'lucide-react-native';
+import { Wallet, Users, Package, TrendingUp, AlertCircle, CheckCircle, Clock, FileText, Upload, ArrowLeft, LogOut, User } from 'lucide-react-native';
 import { useAuth } from '../store/AuthContext';
+import ScreenBackground from '../components/ScreenBackground';
+import MainHeader from '../components/MainHeader';
 
 // Framer Motion for Web animations
 let motion = { button: TouchableOpacity, div: View };
@@ -16,24 +18,57 @@ if (Platform.OS === 'web') {
     }
 }
 
-const StatCard = ({ title, value, icon: Icon, color }) => (
-    <View style={styles.card}>
-        <View style={[styles.iconContainer, { backgroundColor: color + '20' }]}>
-            <Icon color={color} size={24} />
-        </View>
-        <Text style={styles.cardValue}>{value}</Text>
-        <Text style={styles.cardTitle}>{title}</Text>
-    </View>
-);
+const StatCard = ({ title, value, icon: Icon, color, onPress, fullWidth }) => {
+    if (fullWidth) {
+        return (
+            <TouchableOpacity
+                onPress={onPress}
+                activeOpacity={0.7}
+                style={[styles.card, styles.fullWidthCard]}
+            >
+                <View style={[styles.iconContainer, { backgroundColor: color + '20', marginBottom: 0, marginRight: 14 }]}>
+                    <Icon color={color} size={22} />
+                </View>
+                <View style={{ flex: 1 }}>
+                    <Text style={[styles.cardValue, { fontSize: 26 }]}>{value}</Text>
+                    <Text style={styles.cardTitle}>{title}</Text>
+                </View>
+            </TouchableOpacity>
+        );
+    }
+    return (
+        <TouchableOpacity 
+            onPress={onPress}
+            activeOpacity={0.7}
+            style={styles.card}
+        >
+            <View style={styles.cardHeader}>
+                <View style={[styles.iconContainer, { backgroundColor: color + '20' }]}>
+                    <Icon color={color} size={20} />
+                </View>
+            </View>
+            <Text style={styles.cardValue}>{value}</Text>
+            <Text style={styles.cardTitle}>{title}</Text>
+        </TouchableOpacity>
+    );
+};
+
+
 
 const DashboardScreen = ({ navigation }) => {
     const { width } = useWindowDimensions();
     const isDesktop = width >= 768;
-    const { logout } = useAuth();
+    const { logout, user, isAdmin, setProfile: setGlobalProfile } = useAuth();
     const [profile, setProfile] = useState(null);
-    const [purchasedPackage, setPurchasedPackage] = useState(null);
+    const [purchasedPackages, setPurchasedPackages] = useState([]);
     const [kycDetails, setKycDetails] = useState({ status: 'Not Submitted' });
     const [refreshing, setRefreshing] = useState(false);
+
+    const [showAllPackages, setShowAllPackages] = useState(false);
+    const displayedPackages = showAllPackages ? purchasedPackages : purchasedPackages.slice(0, 2);
+
+    // Access control: Trusted users are admins, or those with approved KYC OR an active account
+    const isTrusted = isAdmin || (kycDetails.status?.toLowerCase() === 'approved') || (user?.isActive || profile?.is_active);
 
     const fetchData = async () => {
         try {
@@ -43,7 +78,17 @@ const DashboardScreen = ({ navigation }) => {
                 apiClient.get('/kyc/user/kyc-status')
             ]);
             setProfile(profileRes.data);
-            setPurchasedPackage(packageRes.data);
+            setGlobalProfile(profileRes.data);
+            
+            // Sync active status with context for global navigation locking
+            if (profileRes.data && profileRes.data.is_active !== user?.isActive) {
+                updateActiveStatus(profileRes.data.is_active);
+            }
+
+            console.log('Profile Data:', profileRes.data);
+            console.log('Package Res Data:', packageRes.data);
+            console.log('isAdmin flag:', isAdmin);
+            setPurchasedPackages(Array.isArray(packageRes.data) ? packageRes.data : []);
             setKycDetails(kycRes.data || { status: 'Not Submitted' });
         } catch (e) {
             console.error('Failed to fetch dashboard data', e);
@@ -64,77 +109,82 @@ const DashboardScreen = ({ navigation }) => {
         const unsubscribe = navigation.addListener('focus', () => {
             fetchData();
         });
-        return unsubscribe;
-    }, [navigation]);
+
+        // Auto-refresh: Poll data every 30 seconds
+        const interval = setInterval(() => {
+            if (!refreshing) fetchData();
+        }, 30000);
+
+        return () => {
+            unsubscribe();
+            clearInterval(interval);
+        };
+    }, [navigation, refreshing]);
 
     const purchaseButtonProps = Platform.OS === 'web'
         ? { onClick: () => navigation.navigate('PackageSelection') }
         : { onPress: () => navigation.navigate('PackageSelection') };
 
     return (
-        <View style={styles.container}>
-            {/* Top Navigation Bar */}
-            <View style={styles.headerBar}>
-                <View style={styles.headerLeft}>
-                    {(kycDetails.status?.toLowerCase() === 'approved' && purchasedPackage) ? (
-                        <TouchableOpacity style={styles.menuBtn} onPress={() => navigation.openDrawer()}>
-                            <View style={styles.menuLine} />
-                            <View style={styles.menuLine} />
-                            <View style={[styles.menuLine, { width: 12 }]} />
-                        </TouchableOpacity>
-                    ) : (
-                        <View style={{ width: 8 }} />
-                    )}
-                    <Text style={styles.navTitle}>Dashboard</Text>
-                </View>
-
-                {!(kycDetails.status?.toLowerCase() === 'approved' && purchasedPackage) && (
-                    <TouchableOpacity style={styles.headerLogoutBtn} onPress={logout}>
-                        <LogOut color="#8b1e3f" size={20} />
-                    </TouchableOpacity>
-                )}
-            </View>
-
-            <ScrollView
-                style={{ flex: 1 }}
-                contentContainerStyle={styles.content}
-                refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={COLORS.secondary} />}
-            >
-                {/* Logo Section */}
-                <View style={styles.logoSection}>
-                    <Image
-                        source={require('../../assets/nidhi_logo.png')}
-                        style={styles.nidhiLogo}
-                        resizeMode="contain"
-                    />
-                    <Text style={styles.welcomeText}>Welcome back, {profile?.full_name?.split(' ')[0] || 'Member'}!</Text>
-                </View>
-
-                {/* SECTION 2: PURCHASED PACKAGE DISPLAY */}
-                <View style={styles.section}>
-                    <View style={styles.sectionHeader}>
-                        <Text style={styles.sectionTitle}>My Package</Text>
+        <ScreenBackground subtle={false}>
+            <View style={styles.container}>
+                <MainHeader title="Dashboard" navigation={navigation} />
+    
+                <ScrollView
+                    style={{ flex: 1 }}
+                    contentContainerStyle={styles.content}
+                    refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={COLORS.secondary} />}
+                >
+                    {/* Logo Section */}
+                    <View style={styles.logoSection}>
+                        <Image
+                            source={require('../../assets/nidhi_logo.png')}
+                            style={styles.nidhiLogo}
+                            resizeMode="contain"
+                        />
+                        <Text style={styles.welcomeText}>Welcome back, {profile?.full_name?.split(' ')[0] || 'Member'}!</Text>
                     </View>
-                    <View style={styles.sectionBody}>
-                        <View style={[styles.packageCard, !purchasedPackage && styles.emptyPackage]}>
-                            {purchasedPackage ? (
+    
+                    {/* SECTION 2: PURCHASED PACKAGE DISPLAY */}
+                    <View style={styles.section}>
+                        <View style={styles.sectionHeader}>
+                            <Text style={styles.sectionTitle}>My Package</Text>
+                        </View>
+                        <View style={styles.sectionBody}>
+                            {purchasedPackages.length > 0 ? (
                                 <>
-                                    <View style={styles.packageHeader}>
-                                        <Text style={styles.packageNameText}>{purchasedPackage.package_name || 'Active Plan'}</Text>
-                                        <View style={[styles.statusBadge, { backgroundColor: purchasedPackage.status === 'active' ? '#217323' : '#dc3545' }]}>
-                                            <Text style={styles.statusBadgeText}>{purchasedPackage.status || 'Active'}</Text>
+                                    {displayedPackages.map((pkg, index) => (
+                                        <View key={pkg.id || index} style={[styles.packageCard, index < displayedPackages.length - 1 && { borderBottomWidth: 1, borderBottomColor: '#f1f5f9', marginBottom: 15, paddingBottom: 15 }]}>
+                                            <View style={styles.packageHeader}>
+                                                <Text style={styles.packageNameText}>{pkg.package_name || 'Active Plan'}</Text>
+                                                <View style={{ backgroundColor: pkg.status === 'active' ? '#217323' : '#dc3545', paddingHorizontal: 12, paddingVertical: 4, borderRadius: 20 }}>
+                                                    <Text style={styles.statusBadgeText}>{pkg.status || 'Active'}</Text>
+                                                </View>
+                                            </View>
+                                            <View style={styles.packageBody}>
+                                                <View style={styles.packageDetail}>
+                                                    <Text style={styles.detailLabel}>Amount</Text>
+                                                    <Text style={styles.detailValue}>₹{pkg.amount || pkg.price || '0.00'}</Text>
+                                                </View>
+                                                <View style={styles.packageDetail}>
+                                                    <Text style={styles.detailLabel}>Purchase Date</Text>
+                                                    <Text style={styles.detailValue}>{new Date(pkg.purchase_date || pkg.created_at).toLocaleDateString()}</Text>
+                                                </View>
+                                            </View>
                                         </View>
-                                    </View>
-                                    <View style={styles.packageBody}>
-                                        <View style={styles.packageDetail}>
-                                            <Text style={styles.detailLabel}>Amount</Text>
-                                            <Text style={styles.detailValue}>₹{purchasedPackage.amount || purchasedPackage.price || '0.00'}</Text>
-                                        </View>
-                                        <View style={styles.packageDetail}>
-                                            <Text style={styles.detailLabel}>Purchase Date</Text>
-                                            <Text style={styles.detailValue}>{new Date(purchasedPackage.purchase_date || purchasedPackage.created_at).toLocaleDateString()}</Text>
-                                        </View>
-                                    </View>
+                                    ))}
+                                    
+                                    {purchasedPackages.length > 2 && (
+                                        <TouchableOpacity 
+                                            style={styles.seeMoreBtn} 
+                                            onPress={() => setShowAllPackages(!showAllPackages)}
+                                        >
+                                            <Text style={styles.seeMoreText}>
+                                                {showAllPackages ? 'See Less' : `See More (${purchasedPackages.length - 2} more)`}
+                                            </Text>
+                                            {showAllPackages ? <Clock size={16} color="#217323" /> : <Clock size={16} color="#217323" style={{ transform: [{ rotate: '180deg' }] }} />}
+                                        </TouchableOpacity>
+                                    )}
                                 </>
                             ) : (
                                 <View style={styles.noPackageContainer}>
@@ -146,66 +196,126 @@ const DashboardScreen = ({ navigation }) => {
                             )}
                         </View>
                     </View>
-                </View>
-
-                {/* SECTION 3: KYC VERIFICATION ENTRY */}
-                <View style={styles.section}>
-                    <View style={styles.sectionHeader}>
-                        <Text style={styles.sectionTitle}>Identity Verification</Text>
-                    </View>
-                    <View style={styles.sectionBody}>
-                        <View style={[styles.kycNavCard, kycDetails.status?.toLowerCase() === 'approved' && styles.kycApproved]}>
-                            <View style={styles.kycNavHeader}>
-                                <View style={[styles.kycStatusIcon, { backgroundColor: kycDetails.status?.toLowerCase() === 'approved' ? '#D1FAE5' : kycDetails.status?.toLowerCase() === 'pending' ? '#FEF3C7' : '#FEE2E2' }]}>
-                                    {kycDetails.status?.toLowerCase() === 'approved' ? <CheckCircle color="#059669" size={24} /> :
-                                        kycDetails.status?.toLowerCase() === 'pending' ? <Clock color="#D97706" size={24} /> : <AlertCircle color="#DC2626" size={24} />}
-                                </View>
-                                <View style={{ flex: 1 }}>
-                                    <Text style={styles.kycNavTitle}>KYC Verification</Text>
-                                    <Text style={[styles.kycStatusText, { color: kycDetails.status?.toLowerCase() === 'approved' ? '#059669' : kycDetails.status?.toLowerCase() === 'pending' ? '#D97706' : '#DC2626' }]}>
-                                        Status: {kycDetails.status}
-                                    </Text>
+    
+                    {/* SECTION 3: IDENTITY & PACKAGE VERIFICATION */}
+                    <View style={styles.section}>
+                        <View style={styles.sectionHeader}>
+                            <Text style={styles.sectionTitle}>Identity Verification</Text>
+                        </View>
+                        <View style={styles.sectionBody}>
+                            {/* KYC Row - Always show identity status */}
+                            <View style={[styles.kycRow, { marginBottom: (kycDetails.status?.toLowerCase() === 'pending' && purchasedPackages.length > 0) ? 20 : 0 }]}>
+                                <View style={styles.kycNavHeader}>
+                                    <View style={[styles.kycStatusIcon, { backgroundColor: (kycDetails.status?.toLowerCase() === 'approved' || purchasedPackages.length > 0) ? '#D1FAE5' : kycDetails.status?.toLowerCase() === 'pending' ? '#FEF3C7' : '#FEE2E2' }]}>
+                                        {(kycDetails.status?.toLowerCase() === 'approved' || purchasedPackages.length > 0) ? <CheckCircle color="#059669" size={24} /> :
+                                            kycDetails.status?.toLowerCase() === 'pending' ? <Clock color="#D97706" size={24} /> : <AlertCircle color="#DC2626" size={24} />}
+                                    </View>
+                                    <View style={{ flex: 1 }}>
+                                        <Text style={styles.kycNavTitle}>KYC Verification</Text>
+                                        <Text style={[styles.kycStatusText, { color: (kycDetails.status?.toLowerCase() === 'approved' || purchasedPackages.length > 0) ? '#059669' : kycDetails.status?.toLowerCase() === 'pending' ? '#D97706' : '#DC2626' }]}>
+                                            Status: {(kycDetails.status?.toLowerCase() === 'approved' || purchasedPackages.length > 0) ? 'Approved' : kycDetails.status}
+                                        </Text>
+                                    </View>
                                 </View>
                             </View>
 
+                            {/* Repurchase Status Row - Only show if it's a repurchase and pending */}
+                            {kycDetails.status?.toLowerCase() === 'pending' && purchasedPackages.length > 0 && (
+                                <View style={[styles.kycRow, { borderTopWidth: 1, borderTopColor: '#f1f5f9', paddingTop: 15 }]}>
+                                    <View style={styles.kycNavHeader}>
+                                        <View style={[styles.kycStatusIcon, { backgroundColor: '#FEF3C7' }]}>
+                                            <TrendingUp color="#D97706" size={24} />
+                                        </View>
+                                        <View style={{ flex: 1 }}>
+                                            <Text style={styles.kycNavTitle}>Package Repurchase</Text>
+                                            <Text style={[styles.kycStatusText, { color: '#D97706' }]}>
+                                                Status: Pending Approval
+                                            </Text>
+                                            <Text style={styles.kycSubText}>Request for: {kycDetails.package_name}</Text>
+                                        </View>
+                                    </View>
+                                </View>
+                            )}
+    
                             <TouchableOpacity
-                                style={styles.verifyBtn}
+                                style={[styles.verifyBtn, { marginTop: 15 }]}
                                 onPress={() => navigation.navigate('KYCVerification')}
                             >
-                                <Text style={styles.verifyBtnText}>{kycDetails.status?.toLowerCase() === 'approved' ? 'View KYC' : 'Verify Now'}</Text>
+                                <Text style={styles.verifyBtnText}>
+                                    {(kycDetails.status?.toLowerCase() === 'approved' || purchasedPackages.length > 0) ? 'View Identity Info' : 'Verify Now'}
+                                </Text>
                             </TouchableOpacity>
                         </View>
                     </View>
-                </View>
-
-                {/* STATS OVERVIEW */}
-                <View style={[styles.section, { marginBottom: 60 }]}>
-                    <View style={styles.sectionHeader}>
-                        <Text style={styles.sectionTitle}>My Earnings</Text>
-                    </View>
-                    <View style={styles.sectionBody}>
-                        <View style={styles.statsGrid}>
-                            <StatCard title="Wallet Balance" value={`₹${profile?.balance || 0}`} icon={Wallet} color="#34d399" />
-                            <StatCard title="Direct Income" value={`₹${profile?.direct_income || 0}`} icon={Package} color="#34d399" />
-                            <StatCard title="Level Income" value={`₹${profile?.level_income || 0}`} icon={TrendingUp} color="#34d399" />
-                            <StatCard title="Total Earnings" value={`₹${profile?.total_earnings || 0}`} icon={CheckCircle} color="#34d399" />
+    
+                    {/* STATS OVERVIEW - Only visible to trusted users */}
+                    {isTrusted && (
+                    <View style={[styles.section, { marginBottom: 60 }]}>
+                        <View style={styles.sectionHeader}>
+                            <Text style={styles.sectionTitle}>My Earnings</Text>
+                        </View>
+                        <View style={styles.sectionBody}>
+                            <View style={styles.statsGrid}>
+                                 <StatCard 
+                                    title="Wallet Balance" 
+                                    value={`₹${Number(profile?.total_balance || 0).toLocaleString('en-IN')}`} 
+                                    icon={Wallet} 
+                                    color="#166534" 
+                                    bgColor="rgba(220, 252, 231, 0.6)"
+                                    onPress={() => navigation.navigate('Wallet')}
+                                    fullWidth={true}
+                                />
+                                <StatCard 
+                                    title="Coupon Balance" 
+                                    value={`₹${Number(profile?.total_coupon_benefits || 0).toLocaleString('en-IN')}`} 
+                                    icon={Package} 
+                                    color="#9a3412" 
+                                    bgColor="rgba(255, 237, 213, 0.6)"
+                                    onPress={() => navigation.navigate('Wallet')}
+                                />
+                                <StatCard 
+                                    title="Direct Income" 
+                                    value={`₹${Number(profile?.direct_income || 0).toLocaleString('en-IN')}`} 
+                                    icon={TrendingUp} 
+                                    color="#1e40af" 
+                                    bgColor="rgba(219, 234, 254, 0.6)"
+                                    onPress={() => navigation.navigate('Wallet')}
+                                />
+                                <StatCard 
+                                    title="Level Income" 
+                                    value={`₹${Number(profile?.level_income || 0).toLocaleString('en-IN')}`} 
+                                    icon={TrendingUp} 
+                                    color="#6b21a8" 
+                                    bgColor="rgba(243, 232, 255, 0.6)"
+                                    onPress={() => navigation.navigate('Wallet')}
+                                />
+                                <StatCard 
+                                    title="Total Earnings" 
+                                    value={`₹${Number(profile?.total_earnings || 0).toLocaleString('en-IN')}`} 
+                                    icon={CheckCircle} 
+                                    color="#3730a3" 
+                                    bgColor="rgba(238, 242, 255, 0.6)"
+                                    onPress={() => navigation.navigate('Wallet')}
+                                />
+                            </View>
                         </View>
                     </View>
-                </View>
-            </ScrollView>
-        </View>
+                    )}
+                </ScrollView>
+            </View>
+        </ScreenBackground>
     );
 };
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: '#fcfcfc' },
+    container: { flex: 1, backgroundColor: 'transparent' },
     headerBar: {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
         paddingHorizontal: 16,
         paddingVertical: 12,
-        backgroundColor: '#fff',
+        backgroundColor: 'rgba(255, 255, 255, 0.8)',
         borderBottomWidth: 1,
         borderBottomColor: '#eee',
     },
@@ -237,18 +347,16 @@ const styles = StyleSheet.create({
         paddingBottom: 40,
     },
     logoSection: {
-        backgroundColor: '#fff',
+        backgroundColor: 'transparent',
         width: '100%',
         paddingVertical: 25,
         paddingHorizontal: 20,
         alignItems: 'center',
-        borderBottomWidth: 1,
-        borderBottomColor: '#f0f0f0',
         marginBottom: 10,
     },
     nidhiLogo: {
-        width: 200,
-        height: 100,
+        width: 280,
+        height: 140,
     },
     welcomeText: {
         fontSize: 20,
@@ -264,7 +372,7 @@ const styles = StyleSheet.create({
         overflow: 'hidden',
     },
     sectionHeader: {
-        backgroundColor: '#f8fafc',
+        backgroundColor: 'rgba(248, 250, 252, 0.8)',
         paddingVertical: 8,
         paddingHorizontal: 15,
         borderBottomWidth: 1,
@@ -276,7 +384,7 @@ const styles = StyleSheet.create({
         color: '#1e293b',
     },
     sectionBody: {
-        backgroundColor: '#fff',
+        backgroundColor: 'rgba(255, 255, 255, 0.85)',
         padding: 15,
         borderBottomWidth: 1,
         borderBottomColor: '#eee',
@@ -374,6 +482,14 @@ const styles = StyleSheet.create({
         fontWeight: '600',
         marginTop: 2,
     },
+    kycRow: {
+        width: '100%',
+    },
+    kycSubText: {
+        fontSize: 12,
+        color: '#64748b',
+        marginTop: 2,
+    },
     verifyBtn: {
         backgroundColor: '#1a531b',
         width: '100%',
@@ -405,6 +521,25 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.05,
         shadowRadius: 2,
     },
+    fullWidthCard: {
+        width: '100%',
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    cardHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    fullWidthTitle: {
+        fontSize: 16,
+        fontWeight: 'bold',
+        color: '#64748b',
+        marginLeft: 12,
+    },
+    fullWidthValue: {
+        fontSize: 28,
+        marginTop: 5,
+    },
     cardValue: {
         fontSize: 22,
         fontWeight: 'bold',
@@ -423,6 +558,23 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
         marginBottom: 10,
+    },
+    seeMoreBtn: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingVertical: 10,
+        backgroundColor: '#f8fafc',
+        borderRadius: 8,
+        borderWidth: 1,
+        borderColor: '#e2e8f0',
+        marginTop: 10,
+    },
+    seeMoreText: {
+        fontSize: 14,
+        fontWeight: 'bold',
+        color: '#217323',
+        marginRight: 8,
     },
 });
 

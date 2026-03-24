@@ -8,6 +8,9 @@ import apiClient from '../api/client';
 import { useNavigation } from '@react-navigation/native';
 import { Wallet, Landmark, User, CreditCard } from 'lucide-react-native';
 
+import MainHeader from '../components/MainHeader';
+import ScreenBackground from '../components/ScreenBackground';
+
 const WithdrawRequestScreen = ({ route }) => {
     const { balance } = route.params || { balance: 0 };
     const navigation = useNavigation();
@@ -25,28 +28,6 @@ const WithdrawRequestScreen = ({ route }) => {
     const [loading, setLoading] = useState(false);
     const [fetchingData, setFetchingData] = useState(true);
 
-    const handleAmountChange = (t) => {
-        // Only allow numbers and one decimal point
-        const cleanText = t.replace(/[^0-9.]/g, '');
-        // Prevent multiple decimal points
-        if ((cleanText.match(/\./g) || []).length > 1) return;
-        
-        setForm({ ...form, amount: cleanText });
-        
-        const val = parseFloat(cleanText);
-        if (cleanText === '') {
-            setAmountError('');
-        } else if (isNaN(val)) {
-            setAmountError('Invalid amount');
-        } else if (val < 500) {
-            setAmountError('Minimum withdrawal amount is ₹500');
-        } else if (val > balance) {
-            setAmountError('Amount exceeds commission balance');
-        } else {
-            setAmountError('');
-        }
-    };
-
     React.useEffect(() => {
         const loadBankDetails = async () => {
             try {
@@ -54,7 +35,12 @@ const WithdrawRequestScreen = ({ route }) => {
                 const profileRes = await apiClient.get('/users/profile');
                 const profile = profileRes.data;
                 
-                if (profile.kyc_status?.toLowerCase() !== 'approved') {
+                // If user is currently pending but has NO previous approval OR is not active
+                // we block. But if they're active (repurchase case), we allow.
+                const isNeverApproved = (profile.kyc_status?.toLowerCase() === 'not submitted' || profile.kyc_status?.toLowerCase() === 'rejected') && !profile.is_active;
+                const isPendingFirstTime = profile.kyc_status?.toLowerCase() === 'pending' && !profile.is_active;
+
+                if (isNeverApproved || (isPendingFirstTime && !profile.bank_account_number)) {
                     Alert.alert('KYC Required', 'Your KYC must be approved before you can withdraw funds.', [
                         { text: 'Complete KYC', onPress: () => navigation.navigate('KYCVerification') },
                         { text: 'Go Back', onPress: () => navigation.goBack() }
@@ -94,6 +80,28 @@ const WithdrawRequestScreen = ({ route }) => {
         };
         loadBankDetails();
     }, []);
+
+    const handleAmountChange = (t) => {
+        // Only allow numbers and one decimal point
+        const cleanText = t.replace(/[^0-9.]/g, '');
+        // Prevent multiple decimal points
+        if ((cleanText.match(/\./g) || []).length > 1) return;
+        
+        setForm({ ...form, amount: cleanText });
+        
+        const val = parseFloat(cleanText);
+        if (cleanText === '') {
+            setAmountError('');
+        } else if (isNaN(val)) {
+            setAmountError('Invalid amount');
+        } else if (val < 500) {
+            setAmountError('Minimum withdrawal amount is ₹500');
+        } else if (val > balance) {
+            setAmountError('Amount exceeds commission balance');
+        } else {
+            setAmountError('');
+        }
+    };
 
     const handleSubmit = async () => {
         // Validation
@@ -148,20 +156,23 @@ const WithdrawRequestScreen = ({ route }) => {
     };
 
     return (
-        <KeyboardAvoidingView
-            style={{ flex: 1 }}
-            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        >
-            <ScrollView style={styles.container}>
-                <View style={styles.header}>
-                    <Landmark color={COLORS.secondary} size={32} />
-                    <Text style={styles.title}>Withdraw Request</Text>
-                    {fetchingData && <ActivityIndicator size="small" color={COLORS.secondary} style={{ marginTop: 10 }} />}
-                    <View style={styles.balanceTag}>
-                        <Text style={styles.balanceLabel}>Available Commission:</Text>
-                        <Text style={styles.balanceValue}>₹{balance}</Text>
-                    </View>
-                </View>
+        <ScreenBackground>
+            <View style={styles.container}>
+                <MainHeader title="Withdraw Request" navigation={navigation} showBack hideProfile={true} />
+                <KeyboardAvoidingView
+                    style={{ flex: 1 }}
+                    behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                >
+                    <ScrollView style={{ flex: 1 }}>
+                        <View style={styles.header}>
+                            <Landmark color={COLORS.secondary} size={32} />
+                            <Text style={styles.title}>Withdraw Request</Text>
+                            {fetchingData && <ActivityIndicator size="small" color={COLORS.secondary} style={{ marginTop: 10 }} />}
+                            <View style={styles.balanceTag}>
+                                <Text style={styles.balanceLabel}>Available Commission:</Text>
+                                <Text style={styles.balanceValue}>₹{balance}</Text>
+                            </View>
+                        </View>
 
                 <View style={styles.methodSelector}>
                     <TouchableOpacity
@@ -276,22 +287,24 @@ const WithdrawRequestScreen = ({ route }) => {
                 </View>
             </ScrollView>
         </KeyboardAvoidingView>
+    </View>
+</ScreenBackground>
     );
 };
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: COLORS.background },
-    header: { padding: SPACING.xl, alignItems: 'center', backgroundColor: COLORS.surface, borderBottomWidth: 1, borderBottomColor: COLORS.border },
+    container: { flex: 1, backgroundColor: 'transparent' },
+    header: { padding: SPACING.xl, alignItems: 'center', backgroundColor: 'rgba(255, 255, 255, 0.85)', borderBottomWidth: 1, borderBottomColor: COLORS.border },
     title: { fontSize: 24, fontWeight: 'bold', color: COLORS.text, marginTop: SPACING.m },
     balanceTag: { marginTop: SPACING.m, alignItems: 'center' },
     balanceLabel: { color: COLORS.textSecondary, fontSize: 13 },
     balanceValue: { color: COLORS.secondary, fontSize: 20, fontWeight: '800', marginTop: 4 },
 
-    form: { padding: SPACING.m },
+    form: { padding: SPACING.m, backgroundColor: 'rgba(255, 255, 255, 0.85)', margin: SPACING.m, borderRadius: 16, elevation: 1, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.06, shadowRadius: 4 },
     inputGroup: { marginBottom: SPACING.m },
     label: { color: COLORS.text, fontSize: 13, fontWeight: '600', marginBottom: 8 },
     input: {
-        backgroundColor: COLORS.surface,
+        backgroundColor: 'rgba(255, 255, 255, 0.9)',
         borderWidth: 1,
         borderColor: COLORS.border,
         borderRadius: 8,
@@ -314,7 +327,7 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         padding: SPACING.m,
         justifyContent: 'space-between',
-        backgroundColor: COLORS.surface,
+        backgroundColor: 'rgba(255, 255, 255, 0.85)',
         borderBottomWidth: 1,
         borderBottomColor: COLORS.border
     },
