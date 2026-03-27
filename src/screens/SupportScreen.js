@@ -11,7 +11,7 @@ const SupportScreen = ({ navigation }) => {
 
     const handleEmail = () => Linking.openURL('mailto:contact@nidhifreshbasket.com');
     const handlePhone = () => Linking.openURL('tel:+919865445868');
-    const handleWhatsApp = () => Linking.openURL('https://wa.me/919865445868');
+    const handleWhatsApp = () => Linking.openURL('https://whatsapp.com/channel/0029VbCIh6GHgZWlCBeUmc08');
 
     const ContactItem = ({ icon: Icon, title, value, onPress, color }) => (
         <TouchableOpacity
@@ -100,7 +100,7 @@ const styles = StyleSheet.create({
     container: { flex: 1 },
     contentContainer: { padding: 15, paddingBottom: 40, alignItems: 'center' },
     card: {
-        backgroundColor: 'rgba(255, 255, 255, 0.9)',
+        backgroundColor: COLORS.glassBg,
         borderRadius: 16,
         padding: 20,
         width: '100%',
@@ -110,8 +110,11 @@ const styles = StyleSheet.create({
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.1,
         shadowRadius: 8,
-        borderWidth: 1,
-        borderColor: 'rgba(255, 255, 255, 0.3)',
+        borderWidth: 1.5,
+        borderColor: COLORS.glassBorder,
+        ...Platform.select({
+            web: { backdropFilter: 'blur(16px)' }
+        })
     },
     cardDesktop: { padding: 40 },
     heading: {
@@ -149,10 +152,12 @@ const styles = StyleSheet.create({
     addressBox: {
         flexDirection: 'row',
         alignItems: 'flex-start',
-        backgroundColor: 'rgba(0,0,0,0.02)',
+        backgroundColor: COLORS.glassBgDark, // Little transparent
         padding: 15,
         borderRadius: 12,
         marginBottom: 25,
+        borderWidth: 1.5,
+        borderColor: COLORS.glassBorder,
     },
     addressText: {
         flex: 1,

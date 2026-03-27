@@ -3,10 +3,11 @@ import { StyleSheet, Text, View, TouchableOpacity, ScrollView, Alert, Platform, 
 import { COLORS, SPACING, SIZES } from '../theme/theme';
 import { useAuth } from '../store/AuthContext';
 import apiClient from '../api/client';
-import { User, LogOut, ShieldCheck, Mail, Phone, CreditCard, Eye, EyeOff, Camera, Landmark, Hash, Smartphone, ChevronDown, ChevronUp, CheckCircle, FileText, Shield, HelpCircle, Info, ChevronRight } from 'lucide-react-native';
+import { User, Power, ShieldCheck, Mail, Phone, CreditCard, Eye, EyeOff, Camera, Landmark, Hash, Smartphone, ChevronDown, ChevronUp, CheckCircle, FileText, Shield, HelpCircle, Info, ChevronRight, Image as ImageIcon, Trash2 } from 'lucide-react-native';
 import ScreenBackground from '../components/ScreenBackground';
 import * as ImagePicker from 'expo-image-picker';
 import MainHeader from '../components/MainHeader';
+import AnimatedCard from '../components/AnimatedCard';
 
 const ProfileItem = ({ label, value, icon: Icon, isSensitive, onReveal, revealed, iconColor }) => {
     const maskValue = (val) => {
@@ -17,24 +18,25 @@ const ProfileItem = ({ label, value, icon: Icon, isSensitive, onReveal, revealed
     };
 
     return (
-        <TouchableOpacity
+        <AnimatedCard
             style={styles.item}
             onPress={isSensitive && !revealed ? onReveal : null}
-            activeOpacity={isSensitive && !revealed ? 0.7 : 1}
         >
-            <View style={[styles.iconBox, iconColor && { backgroundColor: iconColor + '10' }]}>
-                <Icon color={iconColor || COLORS.textSecondary} size={20} />
-            </View>
-            <View style={styles.info}>
-                <Text style={styles.label}>{label}</Text>
-                <Text style={styles.value}>{maskValue(value)}</Text>
-            </View>
-            {isSensitive && (
-                <View style={{ marginLeft: 'auto' }}>
-                    {revealed ? <Eye color={COLORS.success} size={18} /> : <EyeOff color={COLORS.textSecondary} size={18} />}
+            <View style={{ flexDirection: 'row', alignItems: 'center', width: '100%' }}>
+                <View style={[styles.iconBox, iconColor && { backgroundColor: iconColor + '10' }]}>
+                    <Icon color={iconColor || COLORS.textSecondary} size={20} />
                 </View>
-            )}
-        </TouchableOpacity>
+                <View style={styles.info}>
+                    <Text style={styles.label}>{label}</Text>
+                    <Text style={styles.value}>{maskValue(value)}</Text>
+                </View>
+                {isSensitive && (
+                    <View style={{ marginLeft: 'auto' }}>
+                        {revealed ? <Eye color={COLORS.success} size={18} /> : <EyeOff color={COLORS.textSecondary} size={18} />}
+                    </View>
+                )}
+            </View>
+        </AnimatedCard>
     );
 };
 
@@ -50,6 +52,7 @@ const ProfileScreen = ({ navigation }) => {
     const [profileImage, setProfileImage] = useState(null);
     const [updatingImage, setUpdatingImage] = useState(false);
     const [isKYCOpen, setIsKYCOpen] = useState(false);
+    const [imageModalVisible, setImageModalVisible] = useState(false);
 
     if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
         UIManager.setLayoutAnimationEnabledExperimental(true);
@@ -98,12 +101,14 @@ const ProfileScreen = ({ navigation }) => {
         }
     };
 
-    const pickImageFromWeb = () => {
-        // Use native HTML file input with accept="image/*"
-        // On mobile browsers this automatically prompts Camera + Gallery choice
+    const pickImageFromWeb = (useCamera = false) => {
         const input = document.createElement('input');
         input.type = 'file';
         input.accept = 'image/*';
+        if (useCamera) {
+            // This signals mobile browsers to open camera instead of files
+            input.capture = 'user';
+        }
         input.onchange = (e) => {
             const file = e.target.files[0];
             if (file) {
@@ -114,30 +119,7 @@ const ProfileScreen = ({ navigation }) => {
     };
 
     const handleProfileImagePress = () => {
-        if (Platform.OS === 'web') {
-            if (profileImage) {
-                const wantsUpdate = window.confirm("Do you want to change your profile photo?\n\nClick OK to select a new one. Click Cancel to check if you want to remove it.");
-                if (wantsUpdate) {
-                    pickImageFromWeb();
-                } else {
-                    const wantsRemove = window.confirm("Do you want to REMOVE your profile photo?\n\nClick OK to remove.");
-                    if (wantsRemove) removeProfileImage();
-                }
-            } else {
-                pickImageFromWeb();
-            }
-        } else {
-            const buttons = [
-                { text: 'Take Photo', onPress: openCamera },
-                { text: 'Choose from Gallery', onPress: openGallery },
-            ];
-            if (profileImage) {
-                buttons.push({ text: 'Remove Photo', onPress: removeProfileImage, style: 'destructive' });
-            }
-            buttons.push({ text: 'Cancel', style: 'cancel' });
-
-            Alert.alert('Profile Photo', 'Select an action', buttons);
-        }
+        setImageModalVisible(true);
     };
 
     const openCamera = async () => {
@@ -434,8 +416,76 @@ const ProfileScreen = ({ navigation }) => {
                             </View>
                         </Modal>
 
+                        {/* Image Picker Modal */}
+                        <Modal
+                            transparent
+                            visible={imageModalVisible}
+                            animationType="slide"
+                            onRequestClose={() => setImageModalVisible(false)}
+                        >
+                            <TouchableOpacity 
+                                style={styles.modalOverlay} 
+                                activeOpacity={1} 
+                                onPress={() => setImageModalVisible(false)}
+                            >
+                                <View style={styles.actionSheetContent}>
+                                    <Text style={styles.actionSheetTitle}>Profile Photo</Text>
+                                    
+                                    <View style={styles.actionOptions}>
+                                        <TouchableOpacity 
+                                            style={styles.actionOption} 
+                                            onPress={() => {
+                                                setImageModalVisible(false);
+                                                if (Platform.OS === 'web') pickImageFromWeb(true);
+                                                else openCamera();
+                                            }}
+                                        >
+                                            <View style={[styles.actionIconBox, { backgroundColor: '#e0f2fe' }]}>
+                                                <Camera color="#0284c7" size={24} />
+                                            </View>
+                                            <Text style={styles.actionOptionText}>Take Photo</Text>
+                                        </TouchableOpacity>
+
+                                        <TouchableOpacity 
+                                            style={styles.actionOption} 
+                                            onPress={() => {
+                                                setImageModalVisible(false);
+                                                if (Platform.OS === 'web') pickImageFromWeb(false);
+                                                else openGallery();
+                                            }}
+                                        >
+                                            <View style={[styles.actionIconBox, { backgroundColor: '#f0fdf4' }]}>
+                                                <ImageIcon color="#16a34a" size={24} />
+                                            </View>
+                                            <Text style={styles.actionOptionText}>Choose from Gallery</Text>
+                                        </TouchableOpacity>
+
+                                        <TouchableOpacity 
+                                            style={styles.actionOption} 
+                                            onPress={() => {
+                                                setImageModalVisible(false);
+                                                removeProfileImage();
+                                            }}
+                                        >
+                                            <View style={[styles.actionIconBox, { backgroundColor: '#fef2f2' }]}>
+                                                <Trash2 color="#dc2626" size={24} />
+                                            </View>
+                                            <Text style={[styles.actionOptionText, { color: '#dc2626' }]}>Remove Photo</Text>
+                                        </TouchableOpacity>
+                                    </View>
+
+                                    <TouchableOpacity 
+                                        style={styles.actionCancelBtn} 
+                                        onPress={() => setImageModalVisible(false)}
+                                    >
+                                        <Text style={styles.actionCancelText}>Cancel</Text>
+                                    </TouchableOpacity>
+                                </View>
+                            </TouchableOpacity>
+                        </Modal>
+
                         <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout}>
-                            <LogOut color={COLORS.error} size={20} />
+                            <Power color={COLORS.error} size={20} />
                             <Text style={styles.logoutText}>Logout</Text>
                         </TouchableOpacity>
                     </View>
@@ -478,14 +528,23 @@ const styles = StyleSheet.create({
         fontWeight: '600',
         marginLeft: 4,
     },
-    header: { padding: SPACING.xl, alignItems: 'center', backgroundColor: 'rgba(255, 255, 255, 0.7)', borderBottomWidth: 1, borderBottomColor: COLORS.border },
+    header: { 
+        padding: SPACING.xl, 
+        alignItems: 'center', 
+        backgroundColor: COLORS.glassBg, 
+        borderBottomWidth: 1, 
+        borderBottomColor: COLORS.glassBorder,
+        ...Platform.select({
+            web: { backdropFilter: 'blur(12px)' }
+        })
+    },
     headerDesktop: {
         width: '100%',
         maxWidth: 700,
         borderRadius: 16,
         marginBottom: 20,
         borderWidth: 1,
-        borderColor: COLORS.border,
+        borderColor: COLORS.glassBorder,
     },
     avatarContainer: { position: 'relative', marginBottom: SPACING.m },
     avatar: { width: 100, height: 100, borderRadius: 50, backgroundColor: COLORS.background, justifyContent: 'center', alignItems: 'center', borderWidth: 2, borderColor: COLORS.secondary, overflow: 'hidden' },
@@ -501,36 +560,42 @@ const styles = StyleSheet.create({
     sectionTitle: { color: COLORS.textSecondary, fontSize: 14, fontWeight: 'bold', textTransform: 'uppercase', marginBottom: SPACING.m, marginLeft: 4 },
     item: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'transparent', paddingVertical: 12, paddingHorizontal: 4, marginBottom: 8 },
     iconBox: { width: 40, height: 40, borderRadius: 10, backgroundColor: COLORS.background, justifyContent: 'center', alignItems: 'center' },
-    info: { marginLeft: 15 },
+    info: { marginLeft: 15, flex: 1 },
     label: { color: COLORS.textSecondary, fontSize: 13, marginBottom: 2 },
     value: { color: COLORS.text, fontSize: 16, fontWeight: 'bold' },
     card: {
-        backgroundColor: 'rgba(255, 255, 255, 0.85)',
+        backgroundColor: COLORS.glassBgDark, // Little transparent for sub-section cards
         borderRadius: 16,
         padding: 20,
         elevation: 2,
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.05,
+        shadowOpacity: 0.1,
         shadowRadius: 8,
-        borderWidth: 1,
-        borderColor: 'rgba(255, 255, 255, 0.3)'
+        borderWidth: 1.5,
+        borderColor: COLORS.glassBorder,
+        ...Platform.select({
+            web: { backdropFilter: 'blur(12px)' }
+        })
     },
     accordionHeader: {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
-        backgroundColor: 'rgba(255, 255, 255, 0.85)',
+        backgroundColor: COLORS.glassBgDark,
         paddingVertical: 15,
         paddingHorizontal: 20,
         borderRadius: 16,
         borderWidth: 1,
-        borderColor: 'rgba(255, 255, 255, 0.3)',
+        borderColor: COLORS.glassBorder,
         elevation: 1,
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.03,
-        shadowRadius: 4
+        shadowOpacity: 0.05,
+        shadowRadius: 4,
+        ...Platform.select({
+            web: { backdropFilter: 'blur(8px)' }
+        })
     },
     accordionTitleRow: { flexDirection: 'row', alignItems: 'center' },
     accordionTitle: { marginLeft: 12, fontSize: 16, fontWeight: 'bold', color: COLORS.text },
@@ -570,12 +635,12 @@ const styles = StyleSheet.create({
         flexDirection: 'row', 
         alignItems: 'center', 
         justifyContent: 'center', 
-        backgroundColor: 'rgba(254, 242, 242, 0.7)', 
+        backgroundColor: 'rgba(254, 242, 242, 0.4)', 
         paddingVertical: 15, 
         paddingHorizontal: 20, 
         borderRadius: 16,
         borderWidth: 1,
-        borderColor: 'rgba(239, 68, 68, 0.2)',
+        borderColor: 'rgba(239, 68, 68, 0.3)',
         marginTop: 30,
         marginBottom: 20,
         marginHorizontal: 15,
@@ -584,6 +649,9 @@ const styles = StyleSheet.create({
         shadowOffset: { width: 0, height: 1 },
         shadowOpacity: 0.1,
         shadowRadius: 4,
+        ...Platform.select({
+            web: { backdropFilter: 'blur(8px)' }
+        })
     },
     logoutText: { color: COLORS.error, fontWeight: 'bold', fontSize: 16, marginLeft: 10 },
 
@@ -598,7 +666,64 @@ const styles = StyleSheet.create({
     cancelBtn: { backgroundColor: 'transparent' },
     confirmBtn: { backgroundColor: COLORS.secondary },
     cancelText: { color: COLORS.textSecondary, fontWeight: '600', fontSize: 16 },
-    confirmText: { color: '#fff', fontWeight: 'bold', fontSize: 16 }
+    confirmText: { color: '#fff', fontWeight: 'bold', fontSize: 16 },
+
+    // Action Sheet Style Modal
+    actionSheetContent: {
+        backgroundColor: COLORS.surface,
+        borderTopLeftRadius: 24,
+        borderTopRightRadius: 24,
+        padding: 24,
+        width: '100%',
+        maxWidth: 450,
+        alignSelf: 'flex-end',
+        ...Platform.select({
+            ios: { paddingBottom: 40 },
+            android: { paddingBottom: 24 },
+            web: { alignSelf: 'center', borderRadius: 24 }
+        })
+    },
+    actionSheetTitle: {
+        fontSize: 18,
+        fontWeight: 'bold',
+        color: COLORS.text,
+        marginBottom: 24,
+        textAlign: 'center'
+    },
+    actionOptions: {
+        flexDirection: 'row',
+        justifyContent: 'space-around',
+        marginBottom: 24,
+    },
+    actionOption: {
+        alignItems: 'center',
+        flex: 1,
+    },
+    actionIconBox: {
+        width: 60,
+        height: 60,
+        borderRadius: 30,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginBottom: 8,
+    },
+    actionOptionText: {
+        fontSize: 13,
+        fontWeight: '600',
+        color: COLORS.textSecondary,
+        textAlign: 'center'
+    },
+    actionCancelBtn: {
+        backgroundColor: '#f5f5f5',
+        paddingVertical: 14,
+        borderRadius: 12,
+        alignItems: 'center'
+    },
+    actionCancelText: {
+        fontSize: 16,
+        fontWeight: 'bold',
+        color: COLORS.text
+    }
 });
 
 export default ProfileScreen;

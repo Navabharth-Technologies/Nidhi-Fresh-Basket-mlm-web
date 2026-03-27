@@ -9,7 +9,10 @@ export const COLORS = {
     error: '#dc3545',
     warning: '#ffc107',
     border: '#dee2e6',
-    accent: '#FFD700'
+    accent: '#FFD700',
+    glassBg: 'rgba(255, 255, 255, 0.12)',
+    glassBgDark: 'rgba(255, 255, 255, 0.4)',
+    glassBorder: 'rgba(255, 255, 255, 0.4)',
 };
 
 export const SPACING = {

@@ -14,6 +14,13 @@ const KYCReviewScreen = ({ route, navigation }) => {
     const [loading, setLoading] = useState(false);
     const [showRejectModal, setShowRejectModal] = useState(false);
     const [rejectionReason, setRejectionReason] = useState('');
+    const typeLabel = isRepurchase ? 'Package Re-activation' : 'KYC';
+
+    useEffect(() => {
+        navigation.setOptions({
+            title: `Review ${typeLabel}`
+        });
+    }, [navigation, typeLabel]);
 
     const handleAction = async (status, reason = '') => {
         console.log('[handleAction] Payload:', {
@@ -222,7 +229,7 @@ const KYCReviewScreen = ({ route, navigation }) => {
                         disabled={loading}
                     >
                         <CheckCircle size={20} color="#fff" />
-                        <Text style={styles.actionText}>Approve KYC</Text>
+                        <Text style={styles.actionText}>{isRepurchase ? 'Approve Re-activation' : 'Approve KYC'}</Text>
                     </TouchableOpacity>
                     <TouchableOpacity
                         style={[styles.actionBtn, styles.rejectBtn]}
@@ -230,14 +237,14 @@ const KYCReviewScreen = ({ route, navigation }) => {
                         disabled={loading}
                     >
                         <XCircle size={20} color="#fff" />
-                        <Text style={styles.actionText}>Reject KYC</Text>
+                        <Text style={styles.actionText}>{isRepurchase ? 'Reject Re-activation' : 'Reject KYC'}</Text>
                     </TouchableOpacity>
                 </View>
             )}
 
             {kycData.kyc_status?.toLowerCase() !== 'pending' && (
                 <View style={[styles.statusBanner, kycData.kyc_status?.toLowerCase() === 'approved' ? styles.bannerApproved : styles.bannerRejected]}>
-                    <Text style={styles.bannerText}>This request has already been {kycData.kyc_status.toUpperCase()}</Text>
+                    <Text style={styles.bannerText}>This {isRepurchase ? 're-activation' : 'request'} has already been {kycData.kyc_status.toUpperCase()}</Text>
                 </View>
             )}
 
@@ -320,11 +327,11 @@ const styles = StyleSheet.create({
     documentImage: { width: '100%', height: 350, borderRadius: 12, backgroundColor: '#f9fafb', borderWidth: 1, borderColor: '#e5e7eb' },
     imagePlaceholder: { justifyContent: 'center', alignItems: 'center', borderStyle: 'dashed' },
     placeholderText: { color: '#9ca3af', fontSize: 13 },
-    actionRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 10 },
-    actionBtn: { flex: 0.48, flexDirection: 'row', height: 56, borderRadius: 12, justifyContent: 'center', alignItems: 'center', elevation: 2 },
+    actionRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 15 },
+    actionBtn: { flex: 1, marginHorizontal: 4, flexDirection: 'row', height: 64, borderRadius: 12, justifyContent: 'center', alignItems: 'center', elevation: 2, paddingHorizontal: 8 },
     approveBtn: { backgroundColor: '#10b981' },
     rejectBtn: { backgroundColor: '#ef4444' },
-    actionText: { color: '#fff', fontWeight: 'bold', fontSize: 15, marginLeft: 8 },
+    actionText: { color: '#fff', fontWeight: 'bold', fontSize: 13, marginLeft: 6, textAlign: 'center', flexShrink: 1 },
     loadingOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(255,255,255,0.7)', justifyContent: 'center', alignItems: 'center', zIndex: 10 },
     modalBg: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', padding: 20 },
     modalContent: { backgroundColor: '#fff', borderRadius: 20, padding: 24, elevation: 5 },

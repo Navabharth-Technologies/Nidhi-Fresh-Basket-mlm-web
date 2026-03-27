@@ -4,14 +4,9 @@ import { StyleSheet, ImageBackground, View, Platform, Dimensions } from 'react-n
 const { width, height } = Dimensions.get('window');
 
 const ScreenBackground = ({ children, subtle = false, admin = false }) => {
-    let bgImage;
-    if (admin) {
-        bgImage = require('../../assets/app_bg_subtle.png');
-    } else {
-        bgImage = subtle 
-            ? require('../../assets/app_bg_subtle.png') 
-            : require('../../assets/app_bg_main.png');
-    }
+    const bgImage = admin 
+        ? require('../../assets/user_garden_bg.jpg')
+        : require('../../assets/internal_pages_bg.jpg');
 
     return (
         <ImageBackground
@@ -34,7 +29,7 @@ const styles = StyleSheet.create({
     },
     overlay: {
         flex: 1,
-        backgroundColor: 'rgba(255, 255, 255, 0.75)', // Increased white overlay for better text readability
+        backgroundColor: 'rgba(255, 255, 255, 0.5)', // Decreased transparency for a more vivid image
     },
     adminOverlay: {
         backgroundColor: 'rgba(255, 255, 255, 0.5)', // Slightly more visible for admin but keeping it clean

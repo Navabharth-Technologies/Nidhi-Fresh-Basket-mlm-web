@@ -4,7 +4,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { COLORS, SPACING, SIZES } from '../theme/theme';
 import apiClient from '../api/client';
 import { useAuth } from '../store/AuthContext';
-import { CheckCircle, Upload, ArrowLeft, FileText, Camera, CreditCard, ChevronRight, TrendingUp } from 'lucide-react-native';
+import { CheckCircle, Upload, ArrowLeft, FileText, Camera, CreditCard, ChevronRight, TrendingUp, RefreshCw, RotateCcw } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
 
 // Framer Motion for Web animations
@@ -20,6 +20,7 @@ if (Platform.OS === 'web') {
 
 import MainHeader from '../components/MainHeader';
 import ScreenBackground from '../components/ScreenBackground';
+import AnimatedCard from '../components/AnimatedCard';
 
 const KYCVerificationScreen = ({ navigation, route }) => {
     const { width } = useWindowDimensions();
@@ -427,9 +428,10 @@ const KYCVerificationScreen = ({ navigation, route }) => {
             <ScreenBackground>
                 <View style={styles.container}>
                     <MainHeader title={isRepurchasePending ? "Package Status" : "KYC Status"} navigation={navigation} showBack hideProfile={true} />
-                    <View style={[styles.statusCard, isDesktop && styles.statusCardDesktop]}>
+                    <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 }}>
+                        <View style={[styles.statusCard, isDesktop && styles.statusCardDesktop]}>
                         {isRepurchasePending ? (
-                            <TrendingUp color="#f59e0b" size={64} style={{ marginBottom: 20 }} />
+                            <RotateCcw color="#f59e0b" size={64} style={{ marginBottom: 20 }} />
                         ) : (
                             <CheckCircle color="#f59e0b" size={64} style={{ marginBottom: 20 }} />
                         )}
@@ -445,6 +447,7 @@ const KYCVerificationScreen = ({ navigation, route }) => {
                         >
                             <Text style={styles.backBtnText}>Back to Dashboard</Text>
                         </TouchableOpacity>
+                        </View>
                     </View>
                 </View>
             </ScreenBackground>
@@ -634,22 +637,26 @@ const KYCVerificationScreen = ({ navigation, route }) => {
                     <Text style={styles.label}>Upload Documents</Text>
 
                     <View style={styles.docRow}>
-                        <TouchableOpacity style={[styles.docItem, images.aadhar_image && styles.docDone]} onPress={() => pickImage('aadhar_image')}>
-                            {images.aadhar_image ? (
-                                <Image source={{ uri: images.aadhar_image }} style={styles.docPreview} />
-                            ) : (
-                                <FileText color="#666" size={20} />
-                            )}
-                            <Text style={styles.docText}>Aadhar Card</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity style={[styles.docItem, images.pan_image && styles.docDone]} onPress={() => pickImage('pan_image')}>
-                            {images.pan_image ? (
-                                <Image source={{ uri: images.pan_image }} style={styles.docPreview} />
-                            ) : (
-                                <FileText color="#666" size={20} />
-                            )}
-                            <Text style={styles.docText}>PAN Card</Text>
-                        </TouchableOpacity>
+                        <AnimatedCard style={[styles.docItem, images.aadhar_image && styles.docDone, { flex: 1, marginHorizontal: 5 }]} onPress={() => pickImage('aadhar_image')}>
+                            <View style={{ alignItems: 'center', width: '100%' }}>
+                                {images.aadhar_image ? (
+                                    <Image source={{ uri: images.aadhar_image }} style={styles.docPreview} />
+                                ) : (
+                                    <FileText color="#666" size={20} />
+                                )}
+                                <Text style={styles.docText}>Aadhar Card</Text>
+                            </View>
+                        </AnimatedCard>
+                        <AnimatedCard style={[styles.docItem, images.pan_image && styles.docDone, { flex: 1, marginHorizontal: 5 }]} onPress={() => pickImage('pan_image')}>
+                            <View style={{ alignItems: 'center', width: '100%' }}>
+                                {images.pan_image ? (
+                                    <Image source={{ uri: images.pan_image }} style={styles.docPreview} />
+                                ) : (
+                                    <FileText color="#666" size={20} />
+                                )}
+                                <Text style={styles.docText}>PAN Card</Text>
+                            </View>
+                        </AnimatedCard>
                     </View>
 
                     <TouchableOpacity 
@@ -666,17 +673,19 @@ const KYCVerificationScreen = ({ navigation, route }) => {
                     <Text style={styles.sectionTitle}>Step 2: Select Package</Text>
                     <View style={styles.packageList}>
                         {packages.map((pkg) => (
-                            <TouchableOpacity
+                            <AnimatedCard
                                 key={pkg.name}
                                 style={[styles.packageCard, form.package_name === pkg.name && styles.packageActive]}
                                 onPress={() => setForm({ ...form, package_name: pkg.name, package_amount: pkg.amount })}
                             >
-                                <View>
-                                    <Text style={styles.packageName}>{pkg.name}</Text>
-                                    <Text style={styles.packageAmount}>₹{pkg.amount}</Text>
+                                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+                                    <View>
+                                        <Text style={styles.packageName}>{pkg.name}</Text>
+                                        <Text style={styles.packageAmount}>₹{pkg.amount}</Text>
+                                    </View>
+                                    {form.package_name === pkg.name && <CheckCircle color="#1a531b" size={24} />}
                                 </View>
-                                {form.package_name === pkg.name && <CheckCircle color="#1a531b" size={24} />}
-                            </TouchableOpacity>
+                            </AnimatedCard>
                         ))}
                     </View>
                     <TouchableOpacity 
@@ -765,14 +774,29 @@ const styles = StyleSheet.create({
     headerDesktop: { width: '100%', maxWidth: 800 },
     headerTitle: { fontSize: 20, fontWeight: 'bold', marginLeft: 15, color: '#111' },
 
-    statusCard: { flex: 1, backgroundColor: 'rgba(255, 255, 255, 0.88)', margin: 40, borderRadius: 24, padding: 30, alignItems: 'center', justifyContent: 'center', elevation: 4, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.08, shadowRadius: 8 },
-    statusCardDesktop: {
-        maxWidth: 600,
-        alignSelf: 'center',
-        maxHeight: 400,
-        marginTop: 100,
+    statusCard: { 
+        backgroundColor: COLORS.glassBg, 
+        borderRadius: 24, 
+        padding: 30, 
+        alignItems: 'center', 
+        justifyContent: 'center', 
+        borderWidth: 1.5,
+        borderColor: COLORS.glassBorder,
+        ...Platform.select({
+            web: { backdropFilter: 'blur(16px)' }
+        }),
+        elevation: 4, 
+        shadowColor: '#000', 
+        shadowOffset: { width: 0, height: 4 }, 
+        shadowOpacity: 0.1, 
+        shadowRadius: 12,
+        width: '100%',
+        marginVertical: 20
     },
-    statusTitle: { fontSize: 24, fontWeight: 'bold', color: '#111', marginBottom: 12 },
+    statusCardDesktop: {
+        maxWidth: 500,
+    },
+    statusTitle: { fontSize: 24, fontWeight: 'bold', color: '#111', marginBottom: 12, textAlign: 'center' },
     statusDesc: { textAlign: 'center', color: '#666', lineHeight: 22 },
     backBtnLarge: { marginTop: 30, backgroundColor: '#1a531b', paddingHorizontal: 32, paddingVertical: 14, borderRadius: 12 },
     backBtnText: { color: '#fff', fontWeight: '600' },
@@ -791,24 +815,52 @@ const styles = StyleSheet.create({
     lineInactive: { backgroundColor: '#e5e7eb' },
 
 
-    stepContent: { backgroundColor: 'rgba(255, 255, 255, 0.88)', borderRadius: 20, padding: 20, elevation: 2, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.08, shadowRadius: 8, width: '100%' },
+    stepContent: { 
+        backgroundColor: COLORS.glassBg, 
+        borderRadius: 20, 
+        padding: 20, 
+        borderWidth: 1.5,
+        borderColor: COLORS.glassBorder,
+        ...Platform.select({
+            web: { backdropFilter: 'blur(12px)' }
+        }),
+        elevation: 2, 
+        shadowColor: '#000', 
+        shadowOffset: { width: 0, height: 2 }, 
+        shadowOpacity: 0.08, 
+        shadowRadius: 8, 
+        width: '100%' 
+    },
     stepContentDesktop: {
         maxWidth: 800,
     },
     sectionTitle: { fontSize: 18, fontWeight: 'bold', color: '#111', marginBottom: 20 },
 
     packageList: { marginBottom: 20 },
-    packageCard: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 16, borderWidth: 1, borderColor: '#e5e7eb', borderRadius: 12, marginBottom: 12 },
-    packageActive: { borderColor: '#1a531b', backgroundColor: '#f0fdf4' },
-    packageName: { fontSize: 16, fontWeight: '600' },
-    packageAmount: { fontSize: 20, fontWeight: 'bold', color: '#1a531b', marginTop: 4 },
+    packageCard: { 
+        flexDirection: 'row', 
+        justifyContent: 'space-between', 
+        alignItems: 'center', 
+        padding: 16, 
+        borderWidth: 1, 
+        borderColor: COLORS.glassBorder, 
+        borderRadius: 12, 
+        marginBottom: 12,
+        backgroundColor: COLORS.glassBgDark // Little transparent for sub-cards
+    },
+    packageActive: { 
+        borderColor: COLORS.primary, 
+        backgroundColor: 'rgba(240, 253, 244, 0.6)' 
+    },
+    packageName: { fontSize: 16, fontWeight: '600', color: COLORS.text },
+    packageAmount: { fontSize: 20, fontWeight: 'bold', color: COLORS.primary, marginTop: 4 },
 
     qrContainer: { alignItems: 'center', marginBottom: 20 },
     qrImage: { width: 200, height: 200, marginBottom: 20 },
-    payDetails: { backgroundColor: '#f9fafb', padding: 15, borderRadius: 12, width: '100%', marginBottom: 15 },
+    payDetails: { backgroundColor: COLORS.glassBgDark, padding: 15, borderRadius: 12, width: '100%', marginBottom: 15, borderWidth: 1, borderColor: COLORS.glassBorder },
     payLabel: { fontSize: 15, color: '#4b5563', marginBottom: 5 },
-    payVal: { fontWeight: 'bold', color: '#111' },
-    qrInstruction: { color: '#6b7280', fontStyle: 'italic', textAlign: 'center' },
+    payVal: { fontWeight: 'bold', color: COLORS.text },
+    qrInstruction: { color: COLORS.textSecondary, fontStyle: 'italic', textAlign: 'center' },
 
     uploadBig: { height: 200, borderWidth: 2, borderStyle: 'dashed', borderColor: '#d1d5db', borderRadius: 16, justifyContent: 'center', alignItems: 'center', marginBottom: 20, backgroundColor: '#f9fafb', overflow: 'hidden' },
     uploadDone: { borderStyle: 'solid', borderColor: '#10b981' },
@@ -822,16 +874,27 @@ const styles = StyleSheet.create({
 
     inputGroup: { marginBottom: 16 },
     label: { fontSize: 14, fontWeight: '600', color: '#374151', marginBottom: 6 },
-    input: { backgroundColor: 'rgba(255, 255, 255, 0.9)', borderWidth: 1, borderColor: '#e5e7eb', borderRadius: 10, padding: 12, fontSize: 16 },
+    input: { backgroundColor: COLORS.glassBgDark, borderWidth: 1, borderColor: COLORS.glassBorder, borderRadius: 10, padding: 12, fontSize: 16, color: COLORS.text },
 
     docRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 12 },
-    docItem: { flex: 1, flexDirection: 'row', alignItems: 'center', backgroundColor: '#f9fafb', borderWidth: 1, borderColor: '#e5e7eb', borderRadius: 10, padding: 12, marginHorizontal: 4, marginBottom: 12 },
-    docDone: { borderColor: '#10b981', backgroundColor: '#f0fdf4' },
+    docItem: { flex: 1, flexDirection: 'row', alignItems: 'center', backgroundColor: COLORS.glassBgDark, borderWidth: 1, borderColor: COLORS.glassBorder, borderRadius: 10, padding: 12, marginHorizontal: 4, marginBottom: 12 },
+    docDone: { borderColor: COLORS.success, backgroundColor: 'rgba(240, 253, 244, 0.6)' },
     docText: { marginLeft: 8, fontSize: 14, color: '#4b5563' },
     docPreview: { width: 30, height: 30, borderRadius: 4, marginRight: 8 },
 
-    submitBtn: { backgroundColor: '#1a531b', paddingVertical: 18, borderRadius: 12, alignItems: 'center', marginTop: 10 },
-    submitBtnText: { color: '#fff', fontSize: 18, fontWeight: 'bold' }
+    submitBtn: { 
+        backgroundColor: COLORS.primary, 
+        paddingVertical: 18, 
+        borderRadius: 12, 
+        alignItems: 'center', 
+        marginTop: 10,
+        shadowColor: COLORS.primary,
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 8,
+        elevation: 4
+    },
+    submitBtnText: { color: '#fff', fontSize: 18, fontWeight: 'bold', letterSpacing: 0.5 }
 });
 
 export default KYCVerificationScreen;

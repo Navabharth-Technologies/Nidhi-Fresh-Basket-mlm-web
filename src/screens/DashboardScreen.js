@@ -2,10 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { StyleSheet, Text, View, ScrollView, RefreshControl, TouchableOpacity, TextInput, Alert, Platform, ActivityIndicator, Image, useWindowDimensions } from 'react-native';
 import { COLORS, SPACING, SIZES } from '../theme/theme';
 import apiClient from '../api/client';
-import { Wallet, Users, Package, TrendingUp, AlertCircle, CheckCircle, Clock, FileText, Upload, ArrowLeft, LogOut, User } from 'lucide-react-native';
+import { Wallet, Users, Package, TrendingUp, AlertCircle, CheckCircle, Clock, FileText, Upload, ArrowLeft, Power, User, Gem, Award, Shield, ChevronRight, RefreshCw, RotateCcw, ArrowUpRight } from 'lucide-react-native';
 import { useAuth } from '../store/AuthContext';
 import ScreenBackground from '../components/ScreenBackground';
 import MainHeader from '../components/MainHeader';
+import AnimatedCard from '../components/AnimatedCard';
 
 // Framer Motion for Web animations
 let motion = { button: TouchableOpacity, div: View };
@@ -19,46 +20,38 @@ if (Platform.OS === 'web') {
 }
 
 const StatCard = ({ title, value, icon: Icon, color, onPress, fullWidth }) => {
-    if (fullWidth) {
-        return (
-            <TouchableOpacity
-                onPress={onPress}
-                activeOpacity={0.7}
-                style={[styles.card, styles.fullWidthCard]}
-            >
-                <View style={[styles.iconContainer, { backgroundColor: color + '20', marginBottom: 0, marginRight: 14 }]}>
-                    <Icon color={color} size={22} />
+    return (
+        <AnimatedCard
+            onPress={onPress}
+            style={[styles.card, fullWidth && styles.fullWidthCard]}
+        >
+            <View style={{ flexDirection: fullWidth ? 'row' : 'column', alignItems: fullWidth ? 'center' : 'stretch' }}>
+                <View style={[styles.iconContainer, { backgroundColor: color + '20', marginBottom: fullWidth ? 0 : 10, marginRight: fullWidth ? 14 : 0 }]}>
+                    <Icon color={color} size={fullWidth ? 22 : 20} />
                 </View>
                 <View style={{ flex: 1 }}>
-                    <Text style={[styles.cardValue, { fontSize: 26 }]}>{value}</Text>
+                    <Text style={[styles.cardValue, fullWidth && { fontSize: 26 }]}>{value}</Text>
                     <Text style={styles.cardTitle}>{title}</Text>
                 </View>
-            </TouchableOpacity>
-        );
-    }
-    return (
-        <TouchableOpacity 
-            onPress={onPress}
-            activeOpacity={0.7}
-            style={styles.card}
-        >
-            <View style={styles.cardHeader}>
-                <View style={[styles.iconContainer, { backgroundColor: color + '20' }]}>
-                    <Icon color={color} size={20} />
-                </View>
             </View>
-            <Text style={styles.cardValue}>{value}</Text>
-            <Text style={styles.cardTitle}>{title}</Text>
-        </TouchableOpacity>
+        </AnimatedCard>
     );
 };
 
 
 
+const getPackageDetails = (name) => {
+    const n = name?.toLowerCase() || '';
+    if (n.includes('diamond')) return { icon: Gem, color: '#0ea5e9', bgColor: '#e0f2fe' };
+    if (n.includes('gold')) return { icon: Award, color: '#eab308', bgColor: '#fefce8' };
+    if (n.includes('silver')) return { icon: Shield, color: '#64748b', bgColor: '#f1f5f9' };
+    return { icon: Package, color: COLORS.secondary, bgColor: '#f0fdf4' };
+};
+
 const DashboardScreen = ({ navigation }) => {
     const { width } = useWindowDimensions();
     const isDesktop = width >= 768;
-    const { logout, user, isAdmin, setProfile: setGlobalProfile } = useAuth();
+    const { logout, user, isAdmin, setProfile: setGlobalProfile, updateActiveStatus } = useAuth();
     const [profile, setProfile] = useState(null);
     const [purchasedPackages, setPurchasedPackages] = useState([]);
     const [kycDetails, setKycDetails] = useState({ status: 'Not Submitted' });
@@ -79,7 +72,7 @@ const DashboardScreen = ({ navigation }) => {
             ]);
             setProfile(profileRes.data);
             setGlobalProfile(profileRes.data);
-            
+
             // Sync active status with context for global navigation locking
             if (profileRes.data && profileRes.data.is_active !== user?.isActive) {
                 updateActiveStatus(profileRes.data.is_active);
@@ -129,22 +122,24 @@ const DashboardScreen = ({ navigation }) => {
         <ScreenBackground subtle={false}>
             <View style={styles.container}>
                 <MainHeader title="Dashboard" navigation={navigation} />
-    
+
                 <ScrollView
                     style={{ flex: 1 }}
                     contentContainerStyle={styles.content}
                     refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={COLORS.secondary} />}
                 >
-                    {/* Logo Section */}
-                    <View style={styles.logoSection}>
+                    {/* Welcoming Header Section */}
+                    <View style={[styles.logoSection, !isDesktop && { flexDirection: 'column', width: '100%', marginBottom: 10 }]}>
                         <Image
                             source={require('../../assets/nidhi_logo.png')}
-                            style={styles.nidhiLogo}
+                            style={[styles.nidhiLogo, !isDesktop && { width: 150, height: 150, marginBottom: -26 }]}
                             resizeMode="contain"
                         />
-                        <Text style={styles.welcomeText}>Welcome back, {profile?.full_name?.split(' ')[0] || 'Member'}!</Text>
+                        <Text style={[styles.welcomeText, !isDesktop && { textAlign: 'center', marginLeft: 0, fontSize: 22 }]}>
+                            Welcome back, {profile?.full_name?.split(' ')[0] || 'Member'}!
+                        </Text>
                     </View>
-    
+
                     {/* SECTION 2: PURCHASED PACKAGE DISPLAY */}
                     <View style={styles.section}>
                         <View style={styles.sectionHeader}>
@@ -153,36 +148,47 @@ const DashboardScreen = ({ navigation }) => {
                         <View style={styles.sectionBody}>
                             {purchasedPackages.length > 0 ? (
                                 <>
-                                    {displayedPackages.map((pkg, index) => (
-                                        <View key={pkg.id || index} style={[styles.packageCard, index < displayedPackages.length - 1 && { borderBottomWidth: 1, borderBottomColor: '#f1f5f9', marginBottom: 15, paddingBottom: 15 }]}>
-                                            <View style={styles.packageHeader}>
-                                                <Text style={styles.packageNameText}>{pkg.package_name || 'Active Plan'}</Text>
-                                                <View style={{ backgroundColor: pkg.status === 'active' ? '#217323' : '#dc3545', paddingHorizontal: 12, paddingVertical: 4, borderRadius: 20 }}>
-                                                    <Text style={styles.statusBadgeText}>{pkg.status || 'Active'}</Text>
-                                                </View>
-                                            </View>
-                                            <View style={styles.packageBody}>
-                                                <View style={styles.packageDetail}>
-                                                    <Text style={styles.detailLabel}>Amount</Text>
-                                                    <Text style={styles.detailValue}>₹{pkg.amount || pkg.price || '0.00'}</Text>
-                                                </View>
-                                                <View style={styles.packageDetail}>
-                                                    <Text style={styles.detailLabel}>Purchase Date</Text>
-                                                    <Text style={styles.detailValue}>{new Date(pkg.purchase_date || pkg.created_at).toLocaleDateString()}</Text>
-                                                </View>
-                                            </View>
-                                        </View>
-                                    ))}
-                                    
+                                    <View style={styles.packageGrid}>
+                                        {displayedPackages.map((pkg, index) => {
+                                            const details = getPackageDetails(pkg.package_name);
+                                            const Icon = details.icon;
+                                            return (
+                                                <AnimatedCard 
+                                                    key={pkg.id || index} 
+                                                    style={styles.packageCardGrid}
+                                                    disableHover={true}
+                                                >
+                                                    <View style={styles.pkgTopRow}>
+                                                        <View style={[styles.pkgIconBox, { backgroundColor: details.bgColor }]}>
+                                                            <Icon color={details.color} size={20} />
+                                                        </View>
+                                                        <View style={styles.pkgNameContainer}>
+                                                            <Text style={styles.pkgNameText} numberOfLines={1}>{pkg.package_name || 'Active Plan'}</Text>
+                                                        </View>
+                                                        <View style={styles.pkgStatusBadge}>
+                                                            <Text style={styles.pkgStatusText}>ACTIVE</Text>
+                                                        </View>
+                                                    </View>
+                                                    
+                                                    <View style={styles.pkgValueRow}>
+                                                        <Text style={styles.pkgAmount}>₹{Number(pkg.amount || pkg.price || 0).toLocaleString('en-IN')}</Text>
+                                                        <Text style={styles.pkgDate}>{new Date(pkg.purchase_date || pkg.created_at).toLocaleDateString()}</Text>
+                                                    </View>
+                                                </AnimatedCard>
+                                            );
+                                        })}
+                                    </View>
+
+
                                     {purchasedPackages.length > 2 && (
-                                        <TouchableOpacity 
-                                            style={styles.seeMoreBtn} 
+                                        <TouchableOpacity
+                                            style={styles.seeMoreBtn}
                                             onPress={() => setShowAllPackages(!showAllPackages)}
                                         >
                                             <Text style={styles.seeMoreText}>
                                                 {showAllPackages ? 'See Less' : `See More (${purchasedPackages.length - 2} more)`}
                                             </Text>
-                                            {showAllPackages ? <Clock size={16} color="#217323" /> : <Clock size={16} color="#217323" style={{ transform: [{ rotate: '180deg' }] }} />}
+                                            {showAllPackages ? <Clock size={16} color="#909f91ff" /> : <Clock size={16} color="#217323" style={{ transform: [{ rotate: '180deg' }] }} />}
                                         </TouchableOpacity>
                                     )}
                                 </>
@@ -196,7 +202,7 @@ const DashboardScreen = ({ navigation }) => {
                             )}
                         </View>
                     </View>
-    
+
                     {/* SECTION 3: IDENTITY & PACKAGE VERIFICATION */}
                     <View style={styles.section}>
                         <View style={styles.sectionHeader}>
@@ -224,7 +230,7 @@ const DashboardScreen = ({ navigation }) => {
                                 <View style={[styles.kycRow, { borderTopWidth: 1, borderTopColor: '#f1f5f9', paddingTop: 15 }]}>
                                     <View style={styles.kycNavHeader}>
                                         <View style={[styles.kycStatusIcon, { backgroundColor: '#FEF3C7' }]}>
-                                            <TrendingUp color="#D97706" size={24} />
+                                            <RotateCcw color="#D97706" size={24} />
                                         </View>
                                         <View style={{ flex: 1 }}>
                                             <Text style={styles.kycNavTitle}>Package Repurchase</Text>
@@ -236,70 +242,70 @@ const DashboardScreen = ({ navigation }) => {
                                     </View>
                                 </View>
                             )}
-    
-                            <TouchableOpacity
+
+                            <AnimatedCard
                                 style={[styles.verifyBtn, { marginTop: 15 }]}
                                 onPress={() => navigation.navigate('KYCVerification')}
                             >
                                 <Text style={styles.verifyBtnText}>
                                     {(kycDetails.status?.toLowerCase() === 'approved' || purchasedPackages.length > 0) ? 'View Identity Info' : 'Verify Now'}
                                 </Text>
-                            </TouchableOpacity>
+                            </AnimatedCard>
                         </View>
                     </View>
-    
+
                     {/* STATS OVERVIEW - Only visible to trusted users */}
                     {isTrusted && (
-                    <View style={[styles.section, { marginBottom: 60 }]}>
-                        <View style={styles.sectionHeader}>
-                            <Text style={styles.sectionTitle}>My Earnings</Text>
-                        </View>
-                        <View style={styles.sectionBody}>
-                            <View style={styles.statsGrid}>
-                                 <StatCard 
-                                    title="Wallet Balance" 
-                                    value={`₹${Number(profile?.total_balance || 0).toLocaleString('en-IN')}`} 
-                                    icon={Wallet} 
-                                    color="#166534" 
-                                    bgColor="rgba(220, 252, 231, 0.6)"
-                                    onPress={() => navigation.navigate('Wallet')}
-                                    fullWidth={true}
-                                />
-                                <StatCard 
-                                    title="Coupon Balance" 
-                                    value={`₹${Number(profile?.total_coupon_benefits || 0).toLocaleString('en-IN')}`} 
-                                    icon={Package} 
-                                    color="#9a3412" 
-                                    bgColor="rgba(255, 237, 213, 0.6)"
-                                    onPress={() => navigation.navigate('Wallet')}
-                                />
-                                <StatCard 
-                                    title="Direct Income" 
-                                    value={`₹${Number(profile?.direct_income || 0).toLocaleString('en-IN')}`} 
-                                    icon={TrendingUp} 
-                                    color="#1e40af" 
-                                    bgColor="rgba(219, 234, 254, 0.6)"
-                                    onPress={() => navigation.navigate('Wallet')}
-                                />
-                                <StatCard 
-                                    title="Level Income" 
-                                    value={`₹${Number(profile?.level_income || 0).toLocaleString('en-IN')}`} 
-                                    icon={TrendingUp} 
-                                    color="#6b21a8" 
-                                    bgColor="rgba(243, 232, 255, 0.6)"
-                                    onPress={() => navigation.navigate('Wallet')}
-                                />
-                                <StatCard 
-                                    title="Total Earnings" 
-                                    value={`₹${Number(profile?.total_earnings || 0).toLocaleString('en-IN')}`} 
-                                    icon={CheckCircle} 
-                                    color="#3730a3" 
-                                    bgColor="rgba(238, 242, 255, 0.6)"
-                                    onPress={() => navigation.navigate('Wallet')}
-                                />
+                        <View style={[styles.section, { marginBottom: 60 }]}>
+                            <View style={styles.sectionHeader}>
+                                <Text style={styles.sectionTitle}>My Earnings</Text>
+                            </View>
+                            <View style={styles.sectionBody}>
+                                <View style={styles.statsGrid}>
+                                    <StatCard
+                                        title="Wallet Balance"
+                                        value={`₹${Number(profile?.total_balance || 0).toLocaleString('en-IN')}`}
+                                        icon={Wallet}
+                                        color="#166534"
+                                        bgColor="rgba(220, 252, 231, 0.6)"
+                                        onPress={() => navigation.navigate('Wallet')}
+                                        fullWidth={true}
+                                    />
+                                    <StatCard
+                                        title="Coupon Balance"
+                                        value={`₹${Number(profile?.total_coupon_benefits || 0).toLocaleString('en-IN')}`}
+                                        icon={Package}
+                                        color="#9a3412"
+                                        bgColor="rgba(255, 237, 213, 0.6)"
+                                        onPress={() => navigation.navigate('Wallet')}
+                                    />
+                                    <StatCard
+                                        title="Direct Income"
+                                        value={`₹${Number(profile?.direct_income || 0).toLocaleString('en-IN')}`}
+                                        icon={ArrowUpRight}
+                                        color="#1e40af"
+                                        bgColor="rgba(219, 234, 254, 0.6)"
+                                        onPress={() => navigation.navigate('Wallet')}
+                                    />
+                                    <StatCard
+                                        title="Level Income"
+                                        value={`₹${Number(profile?.level_income || 0).toLocaleString('en-IN')}`}
+                                        icon={ArrowUpRight}
+                                        color="#6b21a8"
+                                        bgColor="rgba(243, 232, 255, 0.6)"
+                                        onPress={() => navigation.navigate('Wallet')}
+                                    />
+                                    <StatCard
+                                        title="Total Earnings"
+                                        value={`₹${Number(profile?.total_earnings || 0).toLocaleString('en-IN')}`}
+                                        icon={CheckCircle}
+                                        color="#3730a3"
+                                        bgColor="rgba(238, 242, 255, 0.6)"
+                                        onPress={() => navigation.navigate('Wallet')}
+                                    />
+                                </View>
                             </View>
                         </View>
-                    </View>
                     )}
                 </ScrollView>
             </View>
@@ -347,22 +353,25 @@ const styles = StyleSheet.create({
         paddingBottom: 40,
     },
     logoSection: {
-        backgroundColor: 'transparent',
-        width: '100%',
-        paddingVertical: 25,
-        paddingHorizontal: 20,
+        width: '25%',
+        alignSelf: 'center',
+        paddingVertical: 0,
+        paddingHorizontal: 0,
+        flexDirection: 'row',
         alignItems: 'center',
-        marginBottom: 10,
+        justifyContent: 'center',
+        marginBottom: 15,
     },
     nidhiLogo: {
-        width: 280,
-        height: 140,
+        width: 200,
+        height: 160,
     },
     welcomeText: {
-        fontSize: 20,
-        fontWeight: 'bold',
-        color: '#8b1e3f',
-        marginTop: -3,
+        fontSize: 26,
+        fontWeight: '700',
+        color: '#1a4d1a',
+        marginLeft: 0,
+        flex: 1,
     },
     section: {
         width: Platform.OS === 'web' ? '98%' : '100%',
@@ -372,11 +381,13 @@ const styles = StyleSheet.create({
         overflow: 'hidden',
     },
     sectionHeader: {
-        backgroundColor: 'rgba(248, 250, 252, 0.8)',
-        paddingVertical: 8,
+        backgroundColor: COLORS.glassBgDark,
+        paddingVertical: 10,
         paddingHorizontal: 15,
-        borderBottomWidth: 1,
-        borderBottomColor: '#e2e8f0',
+        borderTopLeftRadius: 12,
+        borderTopRightRadius: 12,
+        borderWidth: 1.5,
+        borderColor: COLORS.glassBorder,
     },
     sectionTitle: {
         fontSize: 18,
@@ -384,54 +395,78 @@ const styles = StyleSheet.create({
         color: '#1e293b',
     },
     sectionBody: {
-        backgroundColor: 'rgba(255, 255, 255, 0.85)',
+        backgroundColor: COLORS.glassBg,
         padding: 15,
-        borderBottomWidth: 1,
-        borderBottomColor: '#eee',
+        borderBottomLeftRadius: 12,
+        borderBottomRightRadius: 12,
+        borderWidth: 1.5,
+        borderTopWidth: 0,
+        borderColor: COLORS.glassBorder,
+        ...Platform.select({
+            web: { backdropFilter: 'blur(12px)' }
+        })
     },
-    packageCard: {
-        width: '100%',
-        paddingVertical: 5,
-    },
-    packageHeader: {
+    packageGrid: {
         flexDirection: 'row',
+        flexWrap: 'wrap',
         justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: 15,
-        borderBottomWidth: 1,
-        borderBottomColor: '#f1f5f9',
-        paddingBottom: 10,
     },
-    packageNameText: {
-        fontSize: 22,
+    packageCardGrid: {
+        width: '48.5%',
+        backgroundColor: 'rgba(255, 255, 255, 0.7)',
+        borderRadius: 16,
+        padding: 12,
+        marginBottom: 12,
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.5)',
+    },
+    pkgTopRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: 12,
+    },
+    pkgIconBox: {
+        width: 36,
+        height: 36,
+        borderRadius: 18,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginRight: 10,
+        borderWidth: 1,
+        borderColor: 'rgba(0,0,0,0.05)',
+    },
+    pkgNameContainer: {
+        flex: 1,
+    },
+    pkgNameText: {
+        fontSize: 15,
         fontWeight: 'bold',
         color: '#1e293b',
     },
-    statusBadge: {
-        paddingHorizontal: 12,
-        paddingVertical: 4,
-        borderRadius: 20,
+    pkgStatusBadge: {
+        backgroundColor: '#166534',
+        paddingHorizontal: 8,
+        paddingVertical: 3,
+        borderRadius: 8,
     },
-    statusBadgeText: {
+    pkgStatusText: {
         color: '#fff',
-        fontSize: 12,
+        fontSize: 10,
         fontWeight: 'bold',
-        textTransform: 'uppercase',
     },
-    packageBody: {
-        flexDirection: Platform.OS === 'web' ? 'row' : 'column',
-        gap: 20,
+    pkgValueRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'flex-end',
     },
-    packageDetail: {
-        flex: 1,
-        marginBottom: Platform.OS === 'web' ? 0 : 10,
+    pkgAmount: {
+        fontSize: 18,
+        fontWeight: 'bold',
+        color: '#1e293b',
     },
-    detailLabel: {
-        fontSize: 12,
+    pkgDate: {
+        fontSize: 11,
         color: '#64748b',
-        textTransform: 'uppercase',
-        letterSpacing: 0.5,
-        marginBottom: 4,
     },
     detailValue: {
         fontSize: 16,
@@ -491,16 +526,23 @@ const styles = StyleSheet.create({
         marginTop: 2,
     },
     verifyBtn: {
-        backgroundColor: '#1a531b',
+        backgroundColor: COLORS.primary,
         width: '100%',
         paddingVertical: 14,
-        borderRadius: 6,
+        borderRadius: 12,
         alignItems: 'center',
+        shadowColor: COLORS.primary,
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 8,
+        elevation: 4,
+        marginTop: 15
     },
     verifyBtnText: {
         color: '#fff',
         fontSize: 18,
         fontWeight: 'bold',
+        letterSpacing: 1,
     },
     statsGrid: {
         flexDirection: 'row',
@@ -508,18 +550,21 @@ const styles = StyleSheet.create({
         justifyContent: 'space-between',
     },
     card: {
-        backgroundColor: '#fff',
+        backgroundColor: COLORS.glassBgDark, // Little transparent for sub-cards
         width: '48%',
         padding: 15,
-        borderRadius: 8,
+        borderRadius: 12,
         marginBottom: 15,
-        borderWidth: 1,
-        borderColor: '#f1f5f9',
-        elevation: 1,
+        borderWidth: 1.5,
+        borderColor: COLORS.glassBorder,
+        ...Platform.select({
+            web: { backdropFilter: 'blur(12px)' }
+        }),
+        elevation: 2,
         shadowColor: '#000',
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.05,
-        shadowRadius: 2,
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
     },
     fullWidthCard: {
         width: '100%',
@@ -564,16 +609,16 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'center',
         paddingVertical: 10,
-        backgroundColor: '#f8fafc',
+        backgroundColor: COLORS.primary,
         borderRadius: 8,
         borderWidth: 1,
         borderColor: '#e2e8f0',
         marginTop: 10,
     },
     seeMoreText: {
-        fontSize: 14,
+        fontSize: 16,
         fontWeight: 'bold',
-        color: '#217323',
+        color: 'white',
         marginRight: 8,
     },
 });

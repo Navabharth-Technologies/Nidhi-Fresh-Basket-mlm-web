@@ -8,6 +8,7 @@ import { COLORS, SPACING, SIZES } from '../theme/theme';
 import apiClient from '../api/client';
 import { useAuth } from '../store/AuthContext';
 import ScreenBackground from '../components/ScreenBackground';
+import AnimatedCard from '../components/AnimatedCard';
 import { Landmark, User, Check, X, Wallet, Clock } from 'lucide-react-native';
 import { Platform } from 'react-native';
 
@@ -100,7 +101,7 @@ const AdminWithdrawRequestsScreen = () => {
         const isPending = item.status === 'pending';
 
         return (
-            <View style={styles.card}>
+            <AnimatedCard style={styles.card} hoverStyle={styles.hoverCard}>
                 <View style={styles.cardHeader}>
                     <View>
                         <Text style={styles.userName}>{item.user_full_name || item.name || 'No Name'}</Text>
@@ -205,7 +206,7 @@ const AdminWithdrawRequestsScreen = () => {
                         <Text style={styles.rejectionText}>{item.rejection_reason}</Text>
                     </View>
                 )}
-            </View>
+            </AnimatedCard>
         );
     };
 
@@ -309,40 +310,39 @@ const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: 'transparent' },
     list: { padding: SPACING.m },
     card: {
-        backgroundColor: 'rgba(255, 255, 255, 0.85)',
+        backgroundColor: 'rgba(255, 255, 255, 0.9)',
         borderRadius: 16,
         padding: SPACING.m,
         marginBottom: SPACING.m,
-        borderWidth: 1,
-        borderColor: 'rgba(255, 255, 255, 0.3)',
-        elevation: 1,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.05,
-        shadowRadius: 2
+        borderWidth: 2,
+        borderColor: 'rgba(255, 255, 255, 0.5)',
+    },
+    hoverCard: {
+        backgroundColor: 'rgba(255, 255, 255, 0.1)',
+        borderColor: 'rgba(255, 255, 255, 0.9)',
     },
     cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 },
-    userName: { fontSize: 16, fontWeight: 'bold', color: COLORS.text },
-    userId: { fontSize: 12, color: COLORS.textSecondary, marginTop: 2 },
-    amount: { fontSize: 18, fontWeight: '800', color: COLORS.secondary },
+    userName: { fontSize: 18, fontWeight: 'bold', color: COLORS.text },
+    userId: { fontSize: 14, color: COLORS.textSecondary, marginTop: 2 },
+    amount: { fontSize: 22, fontWeight: '800', color: COLORS.secondary },
 
     walletContainer: {
         flexDirection: 'row',
-        backgroundColor: COLORS.background,
+        backgroundColor: 'transparent',
         borderRadius: 8,
         padding: 8,
         marginBottom: 12,
-        borderWidth: 1,
-        borderColor: COLORS.border
+        borderWidth: 1.5,
+        borderColor: '#ffffff'
     },
     walletBox: { flex: 1, alignItems: 'center', borderRightWidth: 1, borderRightColor: COLORS.border },
-    walletLabel: { fontSize: 10, color: COLORS.textSecondary, marginBottom: 2 },
-    walletVal: { fontSize: 12, fontWeight: '700', color: COLORS.text },
+    walletLabel: { fontSize: 12, color: COLORS.textSecondary, marginBottom: 2 },
+    walletVal: { fontSize: 14, fontWeight: '700', color: COLORS.text },
 
     detailsGrid: { flexDirection: 'row', flexWrap: 'wrap', marginBottom: 12 },
     detailItem: { width: '50%', marginBottom: 8 },
-    detailLabel: { fontSize: 10, color: COLORS.textSecondary, textTransform: 'uppercase' },
-    detailValue: { fontSize: 12, color: COLORS.text, fontWeight: '600', marginTop: 2 },
+    detailLabel: { fontSize: 12, color: COLORS.textSecondary, textTransform: 'uppercase' },
+    detailValue: { fontSize: 14, color: COLORS.text, fontWeight: '600', marginTop: 2 },
 
     cardFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', borderTopWidth: 1, borderTopColor: COLORS.border, paddingTop: 12 },
     statusSection: { flexDirection: 'row', alignItems: 'center' },
@@ -360,7 +360,7 @@ const styles = StyleSheet.create({
     approveBtn: { backgroundColor: COLORS.success },
     rejectBtn: { backgroundColor: COLORS.error },
 
-    center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: COLORS.background },
+    center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'transparent' },
     empty: { marginTop: 100, alignItems: 'center', opacity: 0.6 },
     emptyText: { color: COLORS.textSecondary, marginTop: 16, fontSize: 14 },
 

@@ -130,12 +130,15 @@ const styles = StyleSheet.create({
     title: { fontSize: SIZES.h2, color: COLORS.text, fontWeight: 'bold', marginTop: SPACING.m },
     subtitle: { fontSize: 15, color: COLORS.secondary, marginBottom: SPACING.xl, marginTop: 4, fontWeight: '700' },
     card: {
-        backgroundColor: 'rgba(255, 255, 255, 0.85)',
+        backgroundColor: COLORS.glassBgDark, // Little transparent for items
         padding: SPACING.l,
         borderRadius: SIZES.radius,
         marginBottom: SPACING.l,
-        borderWidth: 1,
-        borderColor: COLORS.border
+        borderWidth: 1.5,
+        borderColor: COLORS.glassBorder,
+        ...Platform.select({
+            web: { backdropFilter: 'blur(12px)' }
+        })
     },
     cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: SPACING.l },
     packageName: { fontSize: 22, color: COLORS.secondary, fontWeight: 'bold' },

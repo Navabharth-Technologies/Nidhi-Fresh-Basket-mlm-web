@@ -2,7 +2,7 @@ import React from 'react';
 import { NavigationContainer, DefaultTheme } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createDrawerNavigator } from '@react-navigation/drawer';
-import { View, Image, Text, TouchableOpacity, Platform, Alert } from 'react-native';
+import { View, Image, Text, TouchableOpacity, Platform, Alert, Dimensions } from 'react-native';
 import { useAuth } from '../store/AuthContext';
 import { COLORS } from '../theme/theme';
 import { LayoutDashboard, Wallet, Network, Package, User, LogIn, Power } from 'lucide-react-native';
@@ -119,6 +119,10 @@ const AppNavigation = () => {
                         <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
                         <Stack.Screen name="ResetPassword" component={ResetPasswordScreen} />
 
+                        <Stack.Screen name="TermsAndConditions" component={TermsScreen} options={{ headerShown: false }} />
+                        <Stack.Screen name="PrivacyPolicy" component={PrivacyScreen} options={{ headerShown: false }} />
+                        <Stack.Screen name="HelpSupport" component={SupportScreen} options={{ headerShown: false }} />
+                        <Stack.Screen name="AboutUs" component={AboutScreen} options={{ headerShown: false }} />
                     </>
                 ) : isAdmin ? (
                     <>
@@ -127,21 +131,31 @@ const AppNavigation = () => {
                             component={AdminKYCListScreen}
                             options={{
                                 headerShown: true,
-                                headerTitle: () => (
-                                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                                        <Image
-                                            source={require('../../assets/nidhi_logo.png')}
-                                            style={{ width: 180, height: 60, marginRight: -40, marginLeft: -25 }}
-                                            resizeMode="contain"
-                                        />
-                                        <View style={{ marginLeft: 0 }}>
-                                            <Text style={{ fontSize: 18, fontWeight: 'bold', color: '#1a531b', lineHeight: 22 }}>Admin Panel</Text>
-                                            <Text style={{ fontSize: 12, color: '#666', lineHeight: 14 }}>Manage Approvals</Text>
+                                headerStyle: { height: 100 },
+                                headerLeft: () => null,
+                                 headerTitle: () => {
+                                    const { width } = Dimensions.get('window');
+                                    const isPhone = width < 768;
+                                    return (
+                                        <View style={{ flexDirection: 'row', alignItems: 'center', height: 100 }}>
+                                            <Image
+                                                source={require('../../assets/nidhi_logo.png')}
+                                                style={{ 
+                                                    width: isPhone ? 160 : 250, 
+                                                    height: isPhone ? 100 : 150, 
+                                                    marginLeft: isPhone ? -25 : -30 
+                                                }}
+                                                resizeMode="contain"
+                                            />
+                                            <View style={{ marginLeft: isPhone ? -30 : -10 }}>
+                                                <Text style={{ fontSize: isPhone ? 20 : 24, fontWeight: 'bold', color: '#1a531b', lineHeight: isPhone ? 24 : 28 }}>Admin Panel</Text>
+                                                <Text style={{ fontSize: isPhone ? 12 : 14, color: '#444', fontWeight: '500', lineHeight: isPhone ? 16 : 18 }}>Manage Approvals</Text>
+                                            </View>
                                         </View>
-                                    </View>
-                                ),
+                                    );
+                                },
                                 headerRight: () => (
-                                    <TouchableOpacity 
+                                    <TouchableOpacity
                                         onPress={() => {
                                             const msg = 'Are you sure you want to logout?';
                                             if (Platform.OS === 'web') {
@@ -160,15 +174,15 @@ const AppNavigation = () => {
                                 )
                             }}
                         />
-                        <Stack.Screen 
-                            name="KYCReview" 
-                            component={KYCReviewScreen} 
-                            options={{ 
-                                headerShown: true, 
-                                headerTitle: 'Review KYC',
+                        <Stack.Screen
+                            name="KYCReview"
+                            component={KYCReviewScreen}
+                            options={{
+                                headerShown: true,
+                                headerTitle: 'Review',
                                 headerTintColor: '#1a531b',
                                 headerRight: () => (
-                                    <TouchableOpacity 
+                                    <TouchableOpacity
                                         onPress={() => {
                                             const msg = 'Are you sure you want to logout?';
                                             if (Platform.OS === 'web') {
@@ -185,17 +199,17 @@ const AppNavigation = () => {
                                         <Power color="#DC2626" size={20} />
                                     </TouchableOpacity>
                                 )
-                            }} 
+                            }}
                         />
-                        <Stack.Screen 
-                            name="AdminWithdrawals" 
-                            component={AdminWithdrawRequestsScreen} 
-                            options={{ 
-                                headerShown: true, 
+                        <Stack.Screen
+                            name="AdminWithdrawals"
+                            component={AdminWithdrawRequestsScreen}
+                            options={{
+                                headerShown: true,
                                 headerTitle: 'Withdraw Requests',
                                 headerTintColor: '#1a531b',
                                 headerRight: () => (
-                                    <TouchableOpacity 
+                                    <TouchableOpacity
                                         onPress={() => {
                                             const msg = 'Are you sure you want to logout?';
                                             if (Platform.OS === 'web') {
@@ -212,7 +226,7 @@ const AppNavigation = () => {
                                         <Power color="#DC2626" size={20} />
                                     </TouchableOpacity>
                                 )
-                            }} 
+                            }}
                         />
                     </>
                 ) : (

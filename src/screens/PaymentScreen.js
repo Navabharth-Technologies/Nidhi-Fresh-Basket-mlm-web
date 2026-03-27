@@ -113,7 +113,7 @@ const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: 'transparent' },
     scrollContent: { padding: 20 },
     summaryCard: {
-        backgroundColor: '#fff',
+        backgroundColor: COLORS.glassBg, // Full transparent for main summary
         borderRadius: 16,
         padding: 24,
         marginBottom: 30,
@@ -122,6 +122,11 @@ const styles = StyleSheet.create({
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.1,
         shadowRadius: 8,
+        borderWidth: 1.5,
+        borderColor: COLORS.glassBorder,
+        ...Platform.select({
+            web: { backdropFilter: 'blur(16px)' }
+        })
     },
     summaryLabel: { fontSize: 14, color: '#666', marginBottom: 4 },
     amount: { fontSize: 32, fontWeight: 'bold', color: '#1a531b', marginBottom: 20 },
@@ -131,16 +136,16 @@ const styles = StyleSheet.create({
     pkgPrice: { fontSize: 16, fontWeight: 'bold', color: '#333' },
     sectionTitle: { fontSize: 18, fontWeight: 'bold', color: '#333', marginBottom: 16 },
     option: {
-        backgroundColor: '#fff',
+        backgroundColor: COLORS.glassBgDark, // Little transparent for sub-options
         flexDirection: 'row',
         alignItems: 'center',
         padding: 16,
         borderRadius: 12,
         marginBottom: 12,
         borderWidth: 1.5,
-        borderColor: '#eee'
+        borderColor: COLORS.glassBorder
     },
-    optionSelected: { borderColor: '#217323', backgroundColor: '#f0f9f1' },
+    optionSelected: { borderColor: COLORS.secondary, backgroundColor: 'rgba(240, 249, 241, 0.6)' },
     optionText: { flex: 1, marginLeft: 16, fontSize: 16, color: '#666' },
     optionTextSelected: { color: '#1a531b', fontWeight: '600' },
     radio: { width: 20, height: 20, borderRadius: 10, borderWidth: 2, borderColor: '#ccc', justifyContent: 'center', alignItems: 'center' },

@@ -8,6 +8,7 @@ import ScreenBackground from '../components/ScreenBackground';
 import MainHeader from '../components/MainHeader';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { Platform } from 'react-native';
+import AnimatedCard from '../components/AnimatedCard';
 
 // Framer Motion for Web animations
 let motion = { button: TouchableOpacity, div: View };
@@ -62,7 +63,7 @@ const TransactionItem = ({ item }) => {
     }
 
     return (
-        <View style={styles.txItem}>
+        <AnimatedCard style={styles.txItem}>
             <View style={[styles.txIcon, { backgroundColor: iconBg }]}>
                 {isCredit ? <ArrowDownLeft color={iconColor} size={16} /> : <ArrowUpRight color={iconColor} size={16} />}
             </View>
@@ -92,7 +93,7 @@ const TransactionItem = ({ item }) => {
             <Text style={[styles.txAmount, { color: color }]}>
                 {prefix}₹{item.amount || '0.00'}
             </Text>
-        </View>
+        </AnimatedCard>
     );
 };
 
@@ -111,7 +112,7 @@ const WalletScreen = () => {
 
     const isWeb = Platform.OS === 'web';
     const [activeTab, setActiveTab] = useState('commission'); // Default to commission to show EARNINGS & WITHDRAWALS first
-    const CardComponent = isWeb ? motion.div : TouchableOpacity;
+
 
     const [couponTx, setCouponTx] = useState([]);
     const [commissionTx, setCommissionTx] = useState([]);
@@ -188,28 +189,17 @@ const WalletScreen = () => {
                         <View style={styles.sectionBody}>
                             <View style={styles.cardsRow}>
                                 {/* Coupon Wallet Card */}
-                                <CardComponent
+                                <AnimatedCard
                                     style={StyleSheet.flatten([
                                         styles.walletCard, 
                                         isDesktop && styles.walletCardDesktop, 
                                         { 
                                             backgroundColor: activeTab === 'coupon' ? 'rgba(255, 237, 213, 0.6)' : 'rgba(255, 237, 213, 0.3)',
                                             borderColor: activeTab === 'coupon' ? 'rgba(154, 52, 18, 0.5)' : 'rgba(154, 52, 18, 0.15)',
-                                            display: isWeb ? 'flex' : undefined,
-                                            flexDirection: 'column',
-                                            alignItems: 'flex-start',
-                                            cursor: isWeb ? 'pointer' : undefined,
                                             borderStyle: 'solid',
                                         }
                                     ])}
-                                    {...(!isWeb ? { onPress: () => setActiveTab('coupon') } : { onClick: () => setActiveTab('coupon') })}
-                                    {...(isWeb ? {
-                                        whileHover: { 
-                                            scale: 1.01,
-                                            backgroundColor: 'rgba(255, 237, 213, 0.6)',
-                                            transition: { duration: 0.2 }
-                                        }
-                                    } : {})}
+                                    onPress={() => setActiveTab('coupon')}
                                 >
                                     <View style={styles.cardHeader}>
                                         <View style={[styles.iconBox, { backgroundColor: 'rgba(255, 255, 255, 0.5)' }]}>
@@ -219,31 +209,20 @@ const WalletScreen = () => {
                                     <Text style={styles.cardTitle}>Coupons</Text>
                                     <Text style={[styles.cardBalance, { color: '#9a3412' }]}>₹{balances.coupon_balance}</Text>
                                     <Text style={styles.cardInfo}>Non-withdrawable</Text>
-                                </CardComponent>
+                                </AnimatedCard>
             
                                 {/* Commission Wallet Card */}
-                                <CardComponent
+                                <AnimatedCard
                                     style={StyleSheet.flatten([
                                         styles.walletCard, 
                                         isDesktop && styles.walletCardDesktop,
                                         { 
                                             backgroundColor: activeTab === 'commission' ? 'rgba(220, 252, 231, 0.6)' : 'rgba(220, 252, 231, 0.3)',
                                             borderColor: activeTab === 'commission' ? 'rgba(22, 101, 52, 0.5)' : 'rgba(22, 101, 52, 0.15)',
-                                            display: isWeb ? 'flex' : undefined,
-                                            flexDirection: 'column',
-                                            alignItems: 'flex-start',
-                                            cursor: isWeb ? 'pointer' : undefined,
                                             borderStyle: 'solid',
                                         }
                                     ])}
-                                    {...(!isWeb ? { onPress: () => setActiveTab('commission') } : { onClick: () => setActiveTab('commission') })}
-                                    {...(isWeb ? {
-                                        whileHover: { 
-                                            scale: 1.01,
-                                            backgroundColor: 'rgba(220, 252, 231, 0.6)',
-                                            transition: { duration: 0.2 }
-                                        }
-                                    } : {})}
+                                    onPress={() => setActiveTab('commission')}
                                 >
                                     <View style={styles.cardHeader}>
                                         <View style={[styles.iconBox, { backgroundColor: 'rgba(255, 255, 255, 0.5)' }]}>
@@ -255,7 +234,7 @@ const WalletScreen = () => {
                                     <TouchableOpacity style={styles.withdrawBtn} onPress={handleWithdraw}>
                                         <Text style={styles.withdrawBtnText}>Withdraw <ArrowRight size={12} color="#fff" style={{ marginLeft: 2 }} /></Text>
                                     </TouchableOpacity>
-                                </CardComponent>
+                                </AnimatedCard>
                             </View>
                         </View>
                     </View>
@@ -296,7 +275,7 @@ const WalletScreen = () => {
 const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: 'transparent' },
     balanceHeader: {
-        backgroundColor: 'rgba(255, 255, 255, 0.6)',
+        backgroundColor: COLORS.glassBg,
         padding: SPACING.m,
         flexDirection: 'row',
         alignItems: 'center',
@@ -304,7 +283,10 @@ const styles = StyleSheet.create({
         margin: SPACING.m,
         borderRadius: 15,
         borderWidth: 1,
-        borderColor: COLORS.border,
+        borderColor: COLORS.glassBorder,
+        ...Platform.select({
+            web: { backdropFilter: 'blur(12px)' }
+        })
     },
     headerDesktop: {
         paddingHorizontal: '10%',
@@ -331,11 +313,13 @@ const styles = StyleSheet.create({
         width: '98%',
     },
     sectionHeader: {
-        backgroundColor: 'rgba(248, 250, 252, 0.8)',
-        paddingVertical: 8,
+        backgroundColor: COLORS.glassBgDark,
+        paddingVertical: 10,
         paddingHorizontal: 15,
-        borderBottomWidth: 1,
-        borderBottomColor: '#e2e8f0',
+        borderTopLeftRadius: 12,
+        borderTopRightRadius: 12,
+        borderWidth: 1,
+        borderColor: COLORS.glassBorder,
     },
     sectionTitle: {
         fontSize: 18,
@@ -343,30 +327,40 @@ const styles = StyleSheet.create({
         color: '#1e293b',
     },
     sectionBody: {
-        backgroundColor: 'rgba(255, 255, 255, 0.85)',
+        backgroundColor: COLORS.glassBg,
         padding: 15,
-        borderBottomWidth: 1,
-        borderBottomColor: '#eee',
+        borderBottomLeftRadius: 12,
+        borderBottomRightRadius: 12,
+        borderWidth: 1,
+        borderTopWidth: 0,
+        borderColor: COLORS.glassBorder,
+        ...Platform.select({
+            web: { backdropFilter: 'blur(12px)' }
+        })
     },
 
     // Wallet cards inside section
     cardsRow: {
         flexDirection: 'row',
-        justifyContent: 'space-between',
-        gap: 12,
+        justifyContent: 'center',
+        gap: 15,
     },
     walletCard: {
         flex: 1,
-        backgroundColor: COLORS.surface,
-        borderRadius: 12,
-        padding: SPACING.m,
-        borderWidth: 1,
-        borderColor: COLORS.border,
-        elevation: 1,
+        backgroundColor: COLORS.glassBgDark,
+        borderRadius: 16,
+        padding: 20,
+        marginBottom: 20,
+        borderWidth: 1.5,
+        borderColor: COLORS.glassBorder,
+        ...Platform.select({
+            web: { backdropFilter: 'blur(12px)' }
+        }),
+        elevation: 2,
         shadowColor: '#000',
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.05,
-        shadowRadius: 2,
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
     },
     walletCardDesktop: {
         flex: 1,
@@ -429,16 +423,19 @@ const styles = StyleSheet.create({
     txItem: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: '#ffffff',
+        backgroundColor: COLORS.glassBgDark, // Little transparent for sub-items
         padding: SPACING.m,
-        borderRadius: 8,
+        borderRadius: 12,
         marginBottom: SPACING.s,
         borderWidth: 1,
-        borderColor: '#f1f5f9',
+        borderColor: COLORS.glassBorder,
+        ...Platform.select({
+            web: { backdropFilter: 'blur(8px)' }
+        }),
         elevation: 1,
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.04,
+        shadowOpacity: 0.05,
         shadowRadius: 2,
     },
     txIcon: { width: 36, height: 36, borderRadius: 18, justifyContent: 'center', alignItems: 'center' },

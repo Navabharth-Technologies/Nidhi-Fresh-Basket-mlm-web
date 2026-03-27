@@ -1,5 +1,5 @@
 import React from 'react';
-import { StyleSheet, Text, View, ScrollView, useWindowDimensions } from 'react-native';
+import { StyleSheet, Text, View, ScrollView, useWindowDimensions, Platform } from 'react-native';
 import { COLORS, SPACING, SIZES } from '../theme/theme';
 import ScreenBackground from '../components/ScreenBackground';
 import MainHeader from '../components/MainHeader';
@@ -53,7 +53,7 @@ const styles = StyleSheet.create({
     container: { flex: 1 },
     contentContainer: { padding: 15, paddingBottom: 40, alignItems: 'center' },
     card: {
-        backgroundColor: 'rgba(255, 255, 255, 0.9)',
+        backgroundColor: COLORS.glassBg, // Full transparent for long text
         borderRadius: 16,
         padding: 20,
         width: '100%',
@@ -63,8 +63,11 @@ const styles = StyleSheet.create({
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.1,
         shadowRadius: 8,
-        borderWidth: 1,
-        borderColor: 'rgba(255, 255, 255, 0.3)',
+        borderWidth: 1.5,
+        borderColor: COLORS.glassBorder,
+        ...Platform.select({
+            web: { backdropFilter: 'blur(12px)' }
+        })
     },
     cardDesktop: { padding: 40 },
     heading: {

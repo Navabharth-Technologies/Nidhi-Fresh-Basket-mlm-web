@@ -1,14 +1,60 @@
-import React, { useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Platform } from 'react-native';
-import { DrawerContentScrollView } from '@react-navigation/drawer';
+import React, { useEffect, useRef } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Platform, Animated, Alert } from 'react-native';
+import { DrawerContentScrollView, useDrawerStatus } from '@react-navigation/drawer';
 import { COLORS } from '../theme/theme';
 import { LayoutDashboard, Wallet, Network, Package, User, Power, Lock } from 'lucide-react-native';
 import { useAuth } from '../store/AuthContext';
 import apiClient from '../api/client';
 
+const AnimatedMenuItem = ({ children, index, drawerStatus, style, innerStyle, isLocked, isActive, onPress }) => {
+    const animatedValue = useRef(new Animated.Value(0)).current;
+
+    useEffect(() => {
+        if (drawerStatus === 'open') {
+            // Reset and animate in
+            animatedValue.setValue(0);
+            Animated.timing(animatedValue, {
+                toValue: 1,
+                duration: 400,
+                delay: index * 60, // 60ms stagger
+                useNativeDriver: true,
+            }).start();
+        } else {
+            // Animate out or reset
+            animatedValue.setValue(0);
+        }
+    }, [drawerStatus]);
+
+    const translateY = animatedValue.interpolate({
+        inputRange: [0, 1],
+        outputRange: [15, 0], // Slide up by 15px
+    });
+
+    const opacity = animatedValue.interpolate({
+        inputRange: [0, 0.5, 1],
+        outputRange: [0, 0, 1], // Fade in later
+    });
+
+    return (
+        <Animated.View style={[style, { opacity, transform: [{ translateY }] }]}>
+            <TouchableOpacity
+                activeOpacity={isLocked ? 1 : 0.7}
+                style={[
+                    innerStyle || styles.menuItemInner,
+                    isActive && style[1] // Apply active background if passed in style array
+                ]}
+                onPress={onPress}
+            >
+                {children}
+            </TouchableOpacity>
+        </Animated.View>
+    );
+};
+
 const CustomDrawerContent = (props) => {
     const { logout, user, profile, setProfile, isAdmin } = useAuth();
     const { state, navigation } = props;
+    const drawerStatus = useDrawerStatus();
 
     useEffect(() => {
         if (!profile && user) {
@@ -38,15 +84,23 @@ const CustomDrawerContent = (props) => {
     return (
         <DrawerContentScrollView {...props} contentContainerStyle={styles.scrollContainer} style={styles.drawerWrapper}>
             <View style={styles.drawerContent}>
-                <View style={styles.header}>
-                    <View style={styles.profileBadge}>
-                        <User size={24} color={COLORS.primary} />
+                <AnimatedMenuItem
+                    index={0}
+                    drawerStatus={drawerStatus}
+                    style={styles.header}
+                    innerStyle={styles.headerInner}
+                    onPress={() => navigation.navigate('Profile')}
+                >
+                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                        <View style={styles.profileBadge}>
+                            <User size={24} color={COLORS.primary} />
+                        </View>
+                        <View>
+                            <Text style={styles.userName} numberOfLines={1}>{profile?.full_name || user?.full_name || 'Member'}</Text>
+                            <Text style={styles.userRole}>{profile?.userid || user?.userid || 'NFB User'}</Text>
+                        </View>
                     </View>
-                    <View>
-                        <Text style={styles.userName} numberOfLines={1}>{profile?.full_name || user?.full_name || 'Member'}</Text>
-                        <Text style={styles.userRole}>{profile?.userid || user?.userid || 'NFB User'}</Text>
-                    </View>
-                </View>
+                </AnimatedMenuItem>
 
                 <View style={styles.menuList}>
                     {menuItems.map((item, index) => {
@@ -55,9 +109,12 @@ const CustomDrawerContent = (props) => {
                         const Icon = isLocked ? Lock : item.icon;
                         
                         return (
-                            <TouchableOpacity
+                            <AnimatedMenuItem
                                 key={index}
-                                activeOpacity={isLocked ? 1 : 0.7}
+                                index={index + 1} // Offset by 1 for header
+                                drawerStatus={drawerStatus}
+                                isLocked={isLocked}
+                                isActive={isActive}
                                 style={[
                                     styles.menuItem,
                                     isActive && { backgroundColor: item.bgColor },
@@ -87,16 +144,23 @@ const CustomDrawerContent = (props) => {
                                 ]}>
                                     {item.name}
                                 </Text>
-                            </TouchableOpacity>
+                            </AnimatedMenuItem>
                         );
                     })}
                 </View>
 
                 <View style={styles.footer}>
-                    <TouchableOpacity style={styles.logoutBtn} onPress={logout} activeOpacity={0.7}>
-                        <Power size={20} color="#dc3545" strokeWidth={2} />
-                        <Text style={styles.logoutText}>Logout</Text>
-                    </TouchableOpacity>
+                    <AnimatedMenuItem
+                        index={menuItems.length + 1} // Offset after all menu items
+                        drawerStatus={drawerStatus}
+                        style={styles.logoutBtn}
+                        onPress={logout}
+                    >
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                            <Power size={20} color="#dc3545" strokeWidth={2} />
+                            <Text style={styles.logoutText}>Logout</Text>
+                        </View>
+                    </AnimatedMenuItem>
                 </View>
             </View>
         </DrawerContentScrollView>
@@ -115,10 +179,14 @@ const styles = StyleSheet.create({
         padding: 20,
     },
     header: {
+        marginBottom: 30,
+        borderRadius: 12,
+        overflow: 'hidden',
+    },
+    headerInner: {
         flexDirection: 'row',
         alignItems: 'center',
-        marginBottom: 30,
-        paddingBottom: 20,
+        paddingVertical: 10,
         borderBottomWidth: 1,
         borderBottomColor: '#f1f5f9',
     },
@@ -146,12 +214,15 @@ const styles = StyleSheet.create({
         flex: 1,
     },
     menuItem: {
+        marginBottom: 8,
+        borderRadius: 10,
+        overflow: 'hidden',
+    },
+    menuItemInner: {
         flexDirection: 'row',
         alignItems: 'center',
         padding: 12,
         paddingHorizontal: 14,
-        borderRadius: 10,
-        marginBottom: 8,
         gap: 12,
     },
     menuText: {
@@ -166,10 +237,8 @@ const styles = StyleSheet.create({
         borderTopColor: '#f1f5f9',
     },
     logoutBtn: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        padding: 12,
-        gap: 12,
+        borderRadius: 10,
+        overflow: 'hidden',
     },
     logoutText: {
         fontSize: 15,

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { StyleSheet, Text, View, TextInput, TouchableOpacity, ScrollView, Alert, ActivityIndicator, Image } from 'react-native';
+import { StyleSheet, Text, View, TextInput, TouchableOpacity, ScrollView, Alert, ActivityIndicator, Image, Platform } from 'react-native';
 import apiClient from '../api/client';
 import { Phone, ChevronLeft, Lock, KeyRound, CheckCircle } from 'lucide-react-native';
 import ScreenBackground from '../components/ScreenBackground';
@@ -14,6 +14,7 @@ const ForgotPasswordScreen = ({ navigation }) => {
     const [resetLoading, setResetLoading] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+    const [phoneError, setPhoneError] = useState('');
 
     const handleSendOTP = async () => {
         if (!phone) {
@@ -26,14 +27,28 @@ const ForgotPasswordScreen = ({ navigation }) => {
             return;
         }
 
+        // Advanced Phone Validation (Block repeated/sequential)
+        const isRepeated = /^(.)\1{9}$/.test(phone);
+        const isSequential = /^(0123456789|1234567890|9876543210)$/.test(phone);
+        if (isRepeated || isSequential) {
+            Alert.alert('Error', 'Please enter a valid phone number');
+            return;
+        }
+
         setLoading(true);
+        setPhoneError('');
         try {
             const res = await apiClient.post('/users/forgot-password', { phone });
             setOtpSent(true);
             Alert.alert('Success', res.data.msg);
         } catch (error) {
+            console.log('[handleSendOTP] Catch:', error.response?.status, error.response?.data);
             const errorMsg = error.response?.data?.msg || 'Something went wrong';
-            Alert.alert('Failed', errorMsg);
+            if (error.response?.status === 404) {
+                setPhoneError('This phone number is not registered.');
+            } else {
+                Alert.alert('Failed', errorMsg);
+            }
         } finally {
             setLoading(false);
         }
@@ -114,14 +129,36 @@ const ForgotPasswordScreen = ({ navigation }) => {
                             placeholder="10-Digit Phone Number"
                             value={phone}
                             onChangeText={(txt) => {
-                                setPhone(txt);
-                                if (otpSent) setOtpSent(false); // Reset if they change number
+                                const cleanTxt = txt.replace(/[^0-9]/g, '');
+                                setPhone(cleanTxt);
+                                if (otpSent) setOtpSent(false); 
+                                
+                                if (cleanTxt.length > 0 && !/^[6-9]/.test(cleanTxt)) {
+                                    setPhoneError('Mobile number must start with 6, 7, 8, or 9');
+                                    return;
+                                }
+
+                                if (cleanTxt.length === 10) {
+                                    const isRepeated = /^(.)\1{9}$/.test(cleanTxt);
+                                    const isSequential = /^(0123456789|1234567890)$/.test(cleanTxt);
+                                    if (isRepeated || isSequential) {
+                                        setPhoneError('This phone number pattern is invalid.');
+                                    } else {
+                                        setPhoneError('');
+                                    }
+                                } else {
+                                    setPhoneError('');
+                                }
                             }}
                             keyboardType="phone-pad"
                             maxLength={10}
                         />
                         {otpSent && <CheckCircle color="#1a531b" size={18} style={{ marginLeft: 8 }} />}
                     </View>
+
+                    {phoneError ? (
+                        <Text style={[styles.validationText, { marginTop: -15, marginBottom: 15 }]}>{phoneError}</Text>
+                    ) : null}
 
                     {!otpSent ? (
                         <TouchableOpacity
@@ -146,7 +183,7 @@ const ForgotPasswordScreen = ({ navigation }) => {
                                     style={styles.input}
                                     placeholder="6-Digit OTP"
                                     value={otp}
-                                    onChangeText={setOtp}
+                                    onChangeText={(v) => setOtp(v.replace(/[^0-9]/g, ''))}
                                     keyboardType="number-pad"
                                     maxLength={6}
                                 />
@@ -158,7 +195,7 @@ const ForgotPasswordScreen = ({ navigation }) => {
                                     style={styles.input}
                                     placeholder="New Password"
                                     value={newPassword}
-                                    onChangeText={setNewPassword}
+                                    onChangeText={(v) => setNewPassword(v.replace(/\s/g, ''))}
                                     secureTextEntry={!showPassword}
                                     contextMenuHidden={!showPassword}
                                     selectTextOnFocus={showPassword}
@@ -168,6 +205,9 @@ const ForgotPasswordScreen = ({ navigation }) => {
                                     {showPassword ? <Lock size={18} color="#1a531b" /> : <Lock size={18} color="#999" opacity={0.5} />}
                                 </TouchableOpacity>
                             </View>
+                            {newPassword.length > 0 && newPassword.length < 6 && (
+                                <Text style={styles.validationText}>Password must be at least 6 characters</Text>
+                            )}
 
                             <View style={styles.cardInputContainer}>
                                 <Lock color="#666" size={20} style={styles.inputIcon} />
@@ -175,7 +215,7 @@ const ForgotPasswordScreen = ({ navigation }) => {
                                     style={styles.input}
                                     placeholder="Confirm New Password"
                                     value={confirmPassword}
-                                    onChangeText={setConfirmPassword}
+                                    onChangeText={(v) => setConfirmPassword(v.replace(/\s/g, ''))}
                                     secureTextEntry={!showConfirmPassword}
                                     contextMenuHidden={!showConfirmPassword}
                                     selectTextOnFocus={showConfirmPassword}
@@ -185,6 +225,9 @@ const ForgotPasswordScreen = ({ navigation }) => {
                                     {showConfirmPassword ? <Lock size={18} color="#1a531b" /> : <Lock size={18} color="#999" opacity={0.5} />}
                                 </TouchableOpacity>
                             </View>
+                            {confirmPassword.length > 0 && newPassword !== confirmPassword && (
+                                <Text style={styles.validationText}>Passwords do not match</Text>
+                            )}
 
                             <TouchableOpacity
                                 style={styles.resetButton}
@@ -254,13 +297,16 @@ const styles = StyleSheet.create({
     inputContainer: {
         flexDirection: 'row',
         alignItems: 'center',
-        borderWidth: 1,
-        borderColor: '#ddd',
+        borderWidth: 1.5,
+        borderColor: 'rgba(255, 255, 255, 0.4)',
         borderRadius: 8,
         paddingHorizontal: 12,
         marginBottom: 20,
         height: 50,
-        backgroundColor: 'rgba(255, 255, 255, 0.85)',
+        backgroundColor: 'rgba(255, 255, 255, 0.8)',
+        ...Platform.select({
+            web: { backdropFilter: 'blur(8px)' }
+        })
     },
     inputIcon: {
         marginRight: 10,
@@ -293,17 +339,20 @@ const styles = StyleSheet.create({
         borderColor: '#eee',
     },
     otpCard: {
-        backgroundColor: 'rgba(255, 255, 255, 0.85)',
+        backgroundColor: 'rgba(255, 255, 255, 0.8)',
         borderRadius: 12,
         padding: 20,
         marginTop: 10,
-        borderWidth: 1,
-        borderColor: '#e8e8e8',
+        borderWidth: 1.5,
+        borderColor: 'rgba(255, 255, 255, 0.4)',
         elevation: 5,
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.1,
         shadowRadius: 10,
+        ...Platform.select({
+            web: { backdropFilter: 'blur(12px)' }
+        })
     },
     cardTitle: {
         fontSize: 18,
@@ -319,12 +368,13 @@ const styles = StyleSheet.create({
     cardInputContainer: {
         flexDirection: 'row',
         alignItems: 'center',
-        borderWidth: 1,
-        borderColor: '#ddd',
+        borderWidth: 1.5,
+        borderColor: 'rgba(255, 255, 255, 0.4)',
         borderRadius: 8,
         paddingHorizontal: 12,
         marginBottom: 15,
         height: 50,
+        backgroundColor: 'rgba(255, 255, 255, 0.3)',
     },
     resetButton: {
         backgroundColor: '#1a531b',
@@ -346,6 +396,13 @@ const styles = StyleSheet.create({
     eyeIconBtn: {
         padding: 5,
         marginLeft: 5,
+    },
+    validationText: {
+        color: '#dc2626',
+        fontSize: 12,
+        marginTop: -12,
+        marginBottom: 10,
+        marginLeft: 4,
     }
 });
 

@@ -1,5 +1,5 @@
 import React from 'react';
-import { StyleSheet, Text, View, ScrollView, useWindowDimensions, Image, TouchableOpacity, Linking } from 'react-native';
+import { StyleSheet, Text, View, ScrollView, useWindowDimensions, Image, TouchableOpacity, Linking, Platform } from 'react-native';
 import { COLORS, SPACING, SIZES } from '../theme/theme';
 import ScreenBackground from '../components/ScreenBackground';
 import MainHeader from '../components/MainHeader';
@@ -115,7 +115,7 @@ const styles = StyleSheet.create({
     container: { flex: 1 },
     contentContainer: { padding: 15, paddingBottom: 40, alignItems: 'center' },
     card: {
-        backgroundColor: 'rgba(255, 255, 255, 0.9)',
+        backgroundColor: COLORS.glassBg,
         borderRadius: 20,
         padding: 24,
         width: '100%',
@@ -125,8 +125,11 @@ const styles = StyleSheet.create({
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.1,
         shadowRadius: 10,
-        borderWidth: 1,
-        borderColor: 'rgba(255, 255, 255, 0.3)',
+        borderWidth: 1.5,
+        borderColor: COLORS.glassBorder,
+        ...Platform.select({
+            web: { backdropFilter: 'blur(16px)' }
+        })
     },
     cardDesktop: { padding: 48 },
     heroContainer: {
@@ -136,8 +139,8 @@ const styles = StyleSheet.create({
         borderBottomWidth: 1,
         borderBottomColor: 'rgba(0,0,0,0.05)',
     },
-    logo: { width: 180, height: 80 },
-    tagline: { fontSize: 16, color: COLORS.textSecondary, fontWeight: '600', fontStyle: 'italic', marginTop: 10 },
+    logo: { width: 180, height: 120 },
+    tagline: { fontSize: 20, color: 'black', fontWeight: '600', fontStyle: 'italic' },
     paragraph: {
         fontSize: 16,
         color: '#4b5563',
@@ -155,20 +158,24 @@ const styles = StyleSheet.create({
     missionBox: {
         flex: 1,
         minWidth: 250,
-        backgroundColor: COLORS.background,
+        backgroundColor: COLORS.glassBgDark, // Little transparent
         padding: 20,
         borderRadius: 16,
         borderLeftWidth: 4,
         borderLeftColor: COLORS.secondary,
+        borderWidth: 1.5,
+        borderColor: COLORS.glassBorder,
     },
     visionBox: {
         flex: 1,
         minWidth: 250,
-        backgroundColor: COLORS.background,
+        backgroundColor: COLORS.glassBgDark, // Little transparent
         padding: 20,
         borderRadius: 16,
         borderLeftWidth: 4,
         borderLeftColor: '#8b5cf6',
+        borderWidth: 1.5,
+        borderColor: COLORS.glassBorder,
     },
     mvTitle: { fontSize: 18, fontWeight: 'bold', color: COLORS.text, marginTop: 10, marginBottom: 8 },
     mvText: { fontSize: 14, color: '#4b5563', lineHeight: 22 },
@@ -189,12 +196,12 @@ const styles = StyleSheet.create({
     statsContainer: {
         flexDirection: 'row',
         justifyContent: 'space-around',
-        backgroundColor: COLORS.secondary + '08',
+        backgroundColor: 'rgba(255, 255, 255, 0.2)', // Slightly more transparent
         paddingVertical: 25,
         borderRadius: 20,
         marginBottom: 30,
-        borderWidth: 1,
-        borderColor: COLORS.secondary + '20',
+        borderWidth: 1.5,
+        borderColor: COLORS.glassBorder,
     },
     statBox: { alignItems: 'center' },
     statNumber: { fontSize: 24, fontWeight: 'bold', color: COLORS.secondary },

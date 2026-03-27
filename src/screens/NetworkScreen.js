@@ -8,6 +8,7 @@ import apiClient from '../api/client';
 import { Users, UserPlus, UserCheck, Clock, Search, ChevronRight, Share2, Award, TrendingUp, Filter, AlertCircle, Phone, Mail, Calendar, User } from 'lucide-react-native';
 import ScreenBackground from '../components/ScreenBackground';
 import MainHeader from '../components/MainHeader';
+import AnimatedCard from '../components/AnimatedCard';
 
 const GenealogyNode = ({ member, depth = 0, isLastChild = false }) => {
     const [isExpanded, setIsExpanded] = useState(depth < 1); // Auto-expand level 1
@@ -20,9 +21,8 @@ const GenealogyNode = ({ member, depth = 0, isLastChild = false }) => {
             <View style={styles.nodeContainer}>
                 {/* Visual Connector from Parent */}
                 {depth > 0 && <View style={styles.horizontalLineFromParent} />}
-                
-                <TouchableOpacity 
-                    activeOpacity={0.8}
+
+                <AnimatedCard
                     onPress={() => hasChildren && setIsExpanded(!isExpanded)}
                     style={[
                         styles.horizontalNodeCard,
@@ -30,29 +30,31 @@ const GenealogyNode = ({ member, depth = 0, isLastChild = false }) => {
                         !isApproved && { borderLeftColor: COLORS.warning }
                     ]}
                 >
-                    <View style={[styles.horizontalNodeAvatar, { backgroundColor: isApproved ? COLORS.success + '15' : COLORS.warning + '15' }]}>
-                        {isApproved ? <UserCheck size={14} color={COLORS.success} /> : <UserPlus size={14} color={COLORS.warning} />}
-                    </View>
-
-                    <View style={styles.nodeMainInfo}>
-                        <Text style={styles.nodeName} numberOfLines={1}>{member.full_name}</Text>
-                        <Text style={styles.nodeId}>{member.userid}</Text>
-                    </View>
-
-                    <View style={styles.nodeLevelBadge}>
-                        <Text style={styles.nodeLevelText}>L{member.level || depth + 1}</Text>
-                    </View>
-
-                    {hasChildren && (
-                        <View style={[styles.expandIndicator, isExpanded && styles.expandIndicatorActive]}>
-                            <ChevronRight 
-                                size={12} 
-                                color={isExpanded ? '#fff' : COLORS.textSecondary} 
-                                style={{ transform: [{ rotate: isExpanded ? '90deg' : '0deg' }] }}
-                            />
+                    <View style={{ flexDirection: 'row', alignItems: 'center', width: '100%' }}>
+                        <View style={[styles.horizontalNodeAvatar, { backgroundColor: isApproved ? COLORS.success + '15' : COLORS.warning + '15' }]}>
+                            {isApproved ? <UserCheck size={14} color={COLORS.success} /> : <UserPlus size={14} color={COLORS.warning} />}
                         </View>
-                    )}
-                </TouchableOpacity>
+
+                        <View style={styles.nodeMainInfo}>
+                            <Text style={styles.nodeName} numberOfLines={1}>{member.full_name}</Text>
+                            <Text style={styles.nodeId}>{member.userid}</Text>
+                        </View>
+
+                        <View style={styles.nodeLevelBadge}>
+                            <Text style={styles.nodeLevelText}>L{member.level || depth + 1}</Text>
+                        </View>
+
+                        {hasChildren && (
+                            <View style={[styles.expandIndicator, isExpanded && styles.expandIndicatorActive]}>
+                                <ChevronRight
+                                    size={12}
+                                    color={isExpanded ? '#fff' : COLORS.textSecondary}
+                                    style={{ transform: [{ rotate: isExpanded ? '90deg' : '0deg' }] }}
+                                />
+                            </View>
+                        )}
+                    </View>
+                </AnimatedCard>
 
                 {/* Connector to children (if expanded and has children) */}
                 {isExpanded && hasChildren && <View style={styles.horizontalLineToChildren} />}
@@ -63,10 +65,10 @@ const GenealogyNode = ({ member, depth = 0, isLastChild = false }) => {
                 <View style={styles.childrenColumn}>
                     <View style={styles.childrenVerticalStem} />
                     {member.children.map((child, index) => (
-                        <GenealogyNode 
-                            key={child.id} 
-                            member={child} 
-                            depth={depth + 1} 
+                        <GenealogyNode
+                            key={child.id}
+                            member={child}
+                            depth={depth + 1}
                             isLastChild={index === member.children.length - 1}
                         />
                     ))}
@@ -119,7 +121,7 @@ const NetworkScreen = ({ navigation }) => {
 
     const hierarchy = React.useMemo(() => {
         if (!profile || !allMembers[1]) return [];
-        
+
         const allFlatMembers = Object.values(allMembers).flat();
         const memberMap = {};
         allFlatMembers.forEach(m => {
@@ -222,15 +224,6 @@ const NetworkScreen = ({ navigation }) => {
                         </View>
                     </View>
 
-                    <View style={styles.searchBar}>
-                        <Search size={18} color="#64748b" />
-                        <TextInput
-                            style={styles.searchInput}
-                            placeholder="Search by ID or Name..."
-                            value={searchQuery}
-                            onChangeText={setSearchQuery}
-                        />
-                    </View>
                 </View>
 
                 {/* Referral Link Section (Fixed at top) */}
@@ -238,12 +231,14 @@ const NetworkScreen = ({ navigation }) => {
                     <Text style={styles.referralLabel}>Invite Partners & Grow Network</Text>
                     <View style={styles.referralCodeRow}>
                         <Text style={styles.referralCodeLabel}>Your Referral Code:</Text>
-                        <TouchableOpacity style={styles.referralCodeBadge} onPress={handleCopyCode}>
-                            <Text style={styles.referralCodeText}>{profile?.referral_code || '—'}</Text>
-                            <View style={styles.copyBadge}>
-                                <Text style={styles.copyBadgeText}>Copy</Text>
+                        <AnimatedCard style={styles.referralCodeBadge} onPress={handleCopyCode}>
+                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                                <Text style={styles.referralCodeText}>{profile?.referral_code || '—'}</Text>
+                                <View style={styles.copyBadge}>
+                                    <Text style={styles.copyBadgeText}>Copy</Text>
+                                </View>
                             </View>
-                        </TouchableOpacity>
+                        </AnimatedCard>
                     </View>
                     <View style={styles.referralBox}>
                         <Text style={styles.referralLink} numberOfLines={1}>{referralUrl}</Text>
@@ -257,7 +252,7 @@ const NetworkScreen = ({ navigation }) => {
                 </View>
 
                 {/* Hierarchy Tree Area (Scrollable Only) */}
-                <ScrollView 
+                <ScrollView
                     style={styles.treeScroll}
                     contentContainerStyle={styles.treeScrollContent}
                     refreshControl={
@@ -296,11 +291,9 @@ const styles = StyleSheet.create({
     loadingText: { color: COLORS.textSecondary, marginTop: 12, fontSize: 14 },
 
     header: {
-        backgroundColor: 'transparent', // Changed to transparent
+        backgroundColor: 'transparent',
         padding: SPACING.l,
         alignItems: 'center',
-        borderBottomWidth: 1,
-        borderBottomColor: COLORS.border,
         paddingBottom: SPACING.m
     },
     headerDesktop: {
@@ -342,14 +335,17 @@ const styles = StyleSheet.create({
     searchBar: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: COLORS.background,
+        backgroundColor: COLORS.glassBg,
         borderRadius: SIZES.radius,
         paddingHorizontal: SPACING.s,
         paddingVertical: SPACING.xs,
         borderWidth: 1,
-        borderColor: COLORS.border,
+        borderColor: COLORS.glassBorder,
         width: '100%',
         marginBottom: SPACING.m,
+        ...Platform.select({
+            web: { backdropFilter: 'blur(8px)' }
+        })
     },
     searchInput: {
         flex: 1,
@@ -434,8 +430,8 @@ const styles = StyleSheet.create({
         color: COLORS.text,
         letterSpacing: 0.5,
     },
-    horizontalScroll: { 
-        flex: 1, 
+    horizontalScroll: {
+        flex: 1,
         paddingVertical: 10,
     },
     horizontalTreeContainer: {
@@ -455,24 +451,27 @@ const styles = StyleSheet.create({
     },
     horizontalNodeCard: {
         flexDirection: 'row',
+        backgroundColor: 'rgba(255, 255, 255, 0.95)', // Solid white as per image 2
+        paddingVertical: 10,
+        paddingHorizontal: 15,
+        borderRadius: 16,
         alignItems: 'center',
-        backgroundColor: 'rgba(255, 255, 255, 0.95)',
-        paddingHorizontal: 12,
-        paddingVertical: 0,
-        width: 180, // Slightly wider
-        height: 54, // Slightly taller
-        borderRadius: 12,
-        borderWidth: 1,
-        borderColor: 'rgba(226, 232, 240, 0.8)',
-        borderLeftWidth: 4,
+        width: 220, // Wider horizontal look
+        height: 70, // Fixed height for consistency
+        borderWidth: 2, // Highlighted border
+        borderColor: COLORS.glassBorder,
+        borderLeftWidth: 6,
         borderLeftColor: COLORS.secondary,
-        marginVertical: 4,
-        marginLeft: 20, // Connector gap
-        elevation: 3,
+        marginVertical: 10, // More space between cards
+        marginLeft: 40,
+        ...Platform.select({
+            web: { backdropFilter: 'blur(12px)' }
+        }),
+        elevation: 4,
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.1,
-        shadowRadius: 4,
+        shadowRadius: 6,
     },
     horizontalNodeCardExpanded: {
         backgroundColor: '#fff',
@@ -481,37 +480,39 @@ const styles = StyleSheet.create({
         elevation: 5,
     },
     horizontalNodeAvatar: {
-        width: 32,
-        height: 32,
-        borderRadius: 16,
+        width: 44, // Larger as per image 2
+        height: 44,
+        borderRadius: 22,
         justifyContent: 'center',
         alignItems: 'center',
-        marginRight: 10,
+        marginRight: 15,
+        borderWidth: 1,
+        borderColor: 'rgba(0,0,0,0.05)',
     },
     nodeMainInfo: {
         flex: 1,
     },
     nodeName: {
-        fontSize: 13,
-        fontWeight: '700',
+        fontSize: 15, // Larger for readability
+        fontWeight: 'bold',
         color: COLORS.text,
     },
     nodeId: {
-        fontSize: 10,
+        fontSize: 12,
         color: COLORS.textSecondary,
-        marginTop: 1,
+        marginTop: 2,
     },
     nodeLevelBadge: {
-        backgroundColor: COLORS.secondary + '15',
-        paddingHorizontal: 6,
-        paddingVertical: 2,
-        borderRadius: 4,
-        marginHorizontal: 8,
+        backgroundColor: '#f1f5f9',
+        paddingHorizontal: 10,
+        paddingVertical: 4,
+        borderRadius: 8,
+        marginLeft: 10,
     },
     nodeLevelText: {
-        fontSize: 10,
+        fontSize: 11,
         fontWeight: 'bold',
-        color: COLORS.secondary,
+        color: '#64748b',
     },
     expandIndicator: {
         width: 20,
@@ -530,14 +531,14 @@ const styles = StyleSheet.create({
     childrenColumn: {
         flexDirection: 'column',
         position: 'relative',
-        paddingLeft: 20,
+        paddingLeft: 40, // Increased from 20 for more space between levels
     },
     // Connectors
     horizontalLineFromParent: {
         position: 'absolute',
         left: 0,
         top: 40,
-        width: 20,
+        width: 40, // Increased from 20
         height: 1,
         borderTopWidth: 1,
         borderTopColor: COLORS.border,
@@ -545,9 +546,9 @@ const styles = StyleSheet.create({
     },
     horizontalLineToChildren: {
         position: 'absolute',
-        right: -20,
+        right: -40, // Increased from -20
         top: 40,
-        width: 20,
+        width: 40, // Increased from 20
         height: 1,
         borderTopWidth: 1,
         borderTopColor: COLORS.border,
@@ -578,25 +579,30 @@ const styles = StyleSheet.create({
     },
 
     referralSection: {
-        paddingVertical: 12,
-        paddingHorizontal: SPACING.m,
-        backgroundColor: 'rgba(255, 255, 255, 0.8)',
-        borderBottomWidth: 1,
-        borderBottomColor: COLORS.border,
+        marginHorizontal: 15,
+        marginVertical: 10,
+        padding: 15,
+        backgroundColor: COLORS.glassBg,
+        borderRadius: 16,
+        borderWidth: 1.5,
+        borderColor: COLORS.glassBorder,
+        ...Platform.select({
+            web: { backdropFilter: 'blur(12px)' }
+        })
     },
     referralLabel: {
-        fontSize: 14,
-        color: COLORS.textSecondary,
+        fontSize: 20,
+        color: 'black',
         marginBottom: 8,
         fontWeight: '600',
     },
     referralBox: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: 'rgba(255, 255, 255, 0.85)',
+        backgroundColor: 'rgba(255, 255, 255, 0.4)',
         borderRadius: 8,
         borderWidth: 1,
-        borderColor: COLORS.border,
+        borderColor: 'rgba(255, 255, 255, 0.3)',
         paddingHorizontal: 12,
         paddingVertical: 10,
     },

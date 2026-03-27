@@ -294,20 +294,43 @@ const WithdrawRequestScreen = ({ route }) => {
 
 const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: 'transparent' },
-    header: { padding: SPACING.xl, alignItems: 'center', backgroundColor: 'rgba(255, 255, 255, 0.85)', borderBottomWidth: 1, borderBottomColor: COLORS.border },
+    header: { 
+        padding: SPACING.xl, 
+        alignItems: 'center', 
+        backgroundColor: COLORS.glassBg, 
+        borderBottomWidth: 1, 
+        borderBottomColor: COLORS.glassBorder,
+        ...Platform.select({
+            web: { backdropFilter: 'blur(12px)' }
+        })
+    },
     title: { fontSize: 24, fontWeight: 'bold', color: COLORS.text, marginTop: SPACING.m },
     balanceTag: { marginTop: SPACING.m, alignItems: 'center' },
     balanceLabel: { color: COLORS.textSecondary, fontSize: 13 },
     balanceValue: { color: COLORS.secondary, fontSize: 20, fontWeight: '800', marginTop: 4 },
 
-    form: { padding: SPACING.m, backgroundColor: 'rgba(255, 255, 255, 0.85)', margin: SPACING.m, borderRadius: 16, elevation: 1, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.06, shadowRadius: 4 },
+    form: {
+        backgroundColor: COLORS.glassBg, // Full transparent for main form
+        borderRadius: 20,
+        padding: 24,
+        borderWidth: 1.5,
+        borderColor: COLORS.glassBorder,
+        ...Platform.select({
+            web: { backdropFilter: 'blur(12px)' }
+        }),
+        elevation: 2,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.08,
+        shadowRadius: 8
+    },
     inputGroup: { marginBottom: SPACING.m },
     label: { color: COLORS.text, fontSize: 13, fontWeight: '600', marginBottom: 8 },
     input: {
-        backgroundColor: 'rgba(255, 255, 255, 0.9)',
+        backgroundColor: COLORS.glassBgDark, // Little transparent for sub-items
         borderWidth: 1,
-        borderColor: COLORS.border,
-        borderRadius: 8,
+        borderColor: COLORS.glassBorder,
+        borderRadius: 10,
         padding: 12,
         color: COLORS.text,
         fontSize: 15
@@ -317,19 +340,38 @@ const styles = StyleSheet.create({
     hint: { fontSize: 11, color: COLORS.textSecondary, marginTop: 4, fontStyle: 'italic' },
 
     buttonGroup: { marginTop: SPACING.l },
-    button: { padding: SPACING.m, borderRadius: 10, alignItems: 'center', marginBottom: SPACING.m },
-    submitButton: { backgroundColor: COLORS.secondary },
-    cancelButton: { borderWidth: 1, borderColor: COLORS.border },
-    buttonText: { color: '#fff', fontWeight: 'bold', fontSize: 16 },
+    button: { 
+        padding: 16, 
+        borderRadius: 12, 
+        alignItems: 'center', 
+        marginBottom: SPACING.m 
+    },
+    submitButton: { 
+        backgroundColor: COLORS.secondary,
+        shadowColor: COLORS.secondary,
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 8,
+        elevation: 4
+    },
+    cancelButton: { 
+        borderWidth: 1, 
+        borderColor: COLORS.glassBorder,
+        backgroundColor: 'rgba(255, 255, 255, 0.1)'
+    },
+    buttonText: { color: '#fff', fontWeight: 'bold', fontSize: 16, letterSpacing: 0.5 },
     cancelText: { color: COLORS.textSecondary, fontWeight: '600' },
 
     methodSelector: {
         flexDirection: 'row',
         padding: SPACING.m,
         justifyContent: 'space-between',
-        backgroundColor: 'rgba(255, 255, 255, 0.85)',
+        backgroundColor: COLORS.glassBgDark,
         borderBottomWidth: 1,
-        borderBottomColor: COLORS.border
+        borderBottomColor: COLORS.glassBorder,
+        ...Platform.select({
+            web: { backdropFilter: 'blur(8px)' }
+        })
     },
     methodBtn: {
         flex: 1,
@@ -339,9 +381,9 @@ const styles = StyleSheet.create({
         paddingVertical: 12,
         borderRadius: 8,
         marginHorizontal: 5,
-        backgroundColor: COLORS.background,
+        backgroundColor: COLORS.glassBgDark, // Little transparent for sub-buttons
         borderWidth: 1,
-        borderColor: COLORS.border
+        borderColor: COLORS.glassBorder
     },
     methodBtnActive: {
         backgroundColor: COLORS.secondary,
