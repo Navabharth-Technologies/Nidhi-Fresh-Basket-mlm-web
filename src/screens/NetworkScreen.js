@@ -294,15 +294,13 @@ const styles = StyleSheet.create({
         backgroundColor: 'transparent',
         padding: SPACING.l,
         alignItems: 'flex-start',
-        paddingBottom: SPACING.m
+        paddingBottom: 0
     },
     headerDesktop: {
         width: '100%',
-        maxWidth: 1000,
-        alignSelf: 'center',
-        paddingHorizontal: SPACING.xl,
+        paddingHorizontal: SPACING.l,
         paddingTop: SPACING.xl,
-        paddingBottom: SPACING.l,
+        paddingBottom: 0,
     },
     headerTop: {
         flexDirection: 'row',
@@ -312,8 +310,8 @@ const styles = StyleSheet.create({
         marginBottom: SPACING.m,
     },
     headerTitle: {
-        fontSize: SIZES.h2,
-        color: COLORS.text,
+        fontSize: SIZES.h3,
+        color: 'darkgreen',
         fontWeight: 'bold',
     },
     headerSubtitle: {
@@ -583,7 +581,8 @@ const styles = StyleSheet.create({
 
     referralSection: {
         marginHorizontal: 15,
-        marginVertical: 10,
+        marginTop: 5,
+        marginBottom: 15,
         padding: 15,
         backgroundColor: COLORS.glassBg,
         borderRadius: 16,

@@ -1,5 +1,5 @@
 import React from 'react';
-import { StyleSheet, Text, View, ScrollView, useWindowDimensions, Image, TouchableOpacity, Linking, Platform } from 'react-native';
+import { StyleSheet, Text, View, ScrollView, useWindowDimensions, Image, TouchableOpacity, Linking, Platform, RefreshControl } from 'react-native';
 import { COLORS, SPACING, SIZES } from '../theme/theme';
 import ScreenBackground from '../components/ScreenBackground';
 import MainHeader from '../components/MainHeader';
@@ -8,6 +8,12 @@ import { Leaf, Users, Star, Award, Target, Milestone } from 'lucide-react-native
 const AboutScreen = ({ navigation }) => {
     const { width } = useWindowDimensions();
     const isDesktop = width >= 768;
+    const [refreshing, setRefreshing] = React.useState(false);
+
+    const onRefresh = () => {
+        setRefreshing(true);
+        setTimeout(() => setRefreshing(false), 800);
+    };
 
     const FeatureItem = ({ icon: Icon, title, desc, color }) => (
         <View style={styles.featureItem}>
@@ -25,7 +31,10 @@ const AboutScreen = ({ navigation }) => {
         <ScreenBackground>
             <View style={styles.container}>
                 <MainHeader title="About Us" navigation={navigation} showBack={true} hideProfile={true} />
-                <ScrollView contentContainerStyle={styles.contentContainer}>
+                <ScrollView 
+                    contentContainerStyle={styles.contentContainer}
+                    refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={COLORS.secondary} />}
+                >
                     <View style={[styles.card, isDesktop && styles.cardDesktop]}>
                         <View style={styles.heroContainer}>
                             <Image

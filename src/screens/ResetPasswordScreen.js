@@ -154,8 +154,6 @@ const styles = StyleSheet.create({
     },
     backButtonDesktop: {
         width: '100%',
-        maxWidth: 600,
-        alignSelf: 'center',
     },
     backText: {
         fontSize: 16,
@@ -169,8 +167,6 @@ const styles = StyleSheet.create({
     },
     headerDesktop: {
         width: '100%',
-        maxWidth: 600,
-        alignSelf: 'center',
     },
     logo: {
         width: 150,
@@ -193,8 +189,7 @@ const styles = StyleSheet.create({
         width: '100%',
     },
     formDesktop: {
-        maxWidth: 600,
-        alignSelf: 'center',
+        width: '100%',
     },
     inputContainer: {
         flexDirection: 'row',

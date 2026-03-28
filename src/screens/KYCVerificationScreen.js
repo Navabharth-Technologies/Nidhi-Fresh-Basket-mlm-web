@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { StyleSheet, Text, View, ScrollView, TouchableOpacity, TextInput, Alert, Platform, ActivityIndicator, Image, useWindowDimensions } from 'react-native';
+import { StyleSheet, Text, View, ScrollView, TouchableOpacity, TextInput, Alert, Platform, ActivityIndicator, Image, useWindowDimensions, RefreshControl } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { COLORS, SPACING, SIZES } from '../theme/theme';
 import apiClient from '../api/client';
@@ -30,6 +30,7 @@ const KYCVerificationScreen = ({ navigation, route }) => {
     const [kycStatus, setKycStatus] = useState(null); // 'Not Submitted', 'pending', 'approved', 'rejected'
     const [loading, setLoading] = useState(true);
     const [submitting, setSubmitting] = useState(false);
+    const [refreshing, setRefreshing] = useState(false);
     const [purchasedPackages, setPurchasedPackages] = useState([]);
     const [showSuccessCard, setShowSuccessCard] = useState(!route.params?.jumpToStep);
     const isRejected = kycStatus?.toLowerCase() === 'rejected';
@@ -63,38 +64,45 @@ const KYCVerificationScreen = ({ navigation, route }) => {
         { name: 'Diamond Package', amount: '10000' }
     ];
 
-    useEffect(() => {
-        const initialize = async () => {
-            setLoading(true);
-            await Promise.all([
-                fetchKYCStatus(),
-                fetchPackages()
-            ]);
-            const prefilled = await fetchPrefillKYC();
+    const initialize = async () => {
+        setLoading(true);
+        await Promise.all([
+            fetchKYCStatus(),
+            fetchPackages()
+        ]);
+        const prefilled = await fetchPrefillKYC();
+        
+        if (route.params?.packageName) {
+            setForm(prev => ({
+                ...prev,
+                package_name: route.params.packageName,
+                package_amount: route.params.packageAmount ? String(route.params.packageAmount) : ''
+            }));
             
-            if (route.params?.packageName) {
-                setForm(prev => ({
-                    ...prev,
-                    package_name: route.params.packageName,
-                    package_amount: route.params.packageAmount ? String(route.params.packageAmount) : ''
-                }));
+            if (route.params?.jumpToStep) {
+                // Only jump if we have the critical data (Bank & IFSC) from prefill
+                const hasBank = prefilled && prefilled.bank_account_number && prefilled.ifsc_code;
                 
-                if (route.params?.jumpToStep) {
-                    // Only jump if we have the critical data (Bank & IFSC) from prefill
-                    const hasBank = prefilled && prefilled.bank_account_number && prefilled.ifsc_code;
-                    
-                    if (hasBank) {
-                        setCurrentStep(route.params.jumpToStep);
-                        setShowSuccessCard(false);
-                    } else {
-                        console.log('Prefill incomplete, forcing Step 1 for data entry.');
-                        setCurrentStep(1);
-                        setShowSuccessCard(false);
-                    }
+                if (hasBank) {
+                    setCurrentStep(route.params.jumpToStep);
+                    setShowSuccessCard(false);
+                } else {
+                    console.log('Prefill incomplete, forcing Step 1 for data entry.');
+                    setCurrentStep(1);
+                    setShowSuccessCard(false);
                 }
             }
-            setLoading(false);
-        };
+        }
+        setLoading(false);
+        setRefreshing(false);
+    };
+
+    const onRefresh = () => {
+        setRefreshing(true);
+        initialize();
+    };
+
+    useEffect(() => {
         initialize();
     }, [route.params?.packageName, route.params?.packageAmount, route.params?.jumpToStep]);
 
@@ -497,7 +505,10 @@ const KYCVerificationScreen = ({ navigation, route }) => {
                         }
                     }}
                 />
-                <ScrollView contentContainerStyle={[styles.content, isDesktop && styles.contentDesktop]}>
+                <ScrollView 
+                    contentContainerStyle={[styles.content, isDesktop && styles.contentDesktop]}
+                    refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={COLORS.secondary} />}
+                >
 
             {kycStatus && kycStatus.toLowerCase() === 'rejected' && (
                 <View style={styles.rejectAlert}>

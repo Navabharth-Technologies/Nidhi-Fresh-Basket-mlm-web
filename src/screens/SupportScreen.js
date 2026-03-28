@@ -1,5 +1,5 @@
 import React from 'react';
-import { StyleSheet, Text, View, ScrollView, useWindowDimensions, TouchableOpacity, Linking, Platform } from 'react-native';
+import { StyleSheet, Text, View, ScrollView, useWindowDimensions, TouchableOpacity, Linking, Platform, RefreshControl } from 'react-native';
 import { COLORS, SPACING, SIZES } from '../theme/theme';
 import ScreenBackground from '../components/ScreenBackground';
 import MainHeader from '../components/MainHeader';
@@ -8,6 +8,12 @@ import { Mail, Phone, MessageCircle, Clock, MapPin } from 'lucide-react-native';
 const SupportScreen = ({ navigation }) => {
     const { width } = useWindowDimensions();
     const isDesktop = width >= 768;
+    const [refreshing, setRefreshing] = React.useState(false);
+
+    const onRefresh = () => {
+        setRefreshing(true);
+        setTimeout(() => setRefreshing(false), 800);
+    };
 
     const handleEmail = () => Linking.openURL('mailto:contact@nidhifreshbasket.com');
     const handlePhone = () => Linking.openURL('tel:+919865445868');
@@ -34,7 +40,10 @@ const SupportScreen = ({ navigation }) => {
         <ScreenBackground>
             <View style={styles.container}>
                 <MainHeader title="Help & Support" navigation={navigation} showBack={true} hideProfile={true} />
-                <ScrollView contentContainerStyle={styles.contentContainer}>
+                <ScrollView 
+                    contentContainerStyle={styles.contentContainer}
+                    refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={COLORS.secondary} />}
+                >
                     <View style={[styles.card, isDesktop && styles.cardDesktop]}>
                         <Text style={styles.heading}>Get in Touch</Text>
                         <Text style={styles.paragraph}>

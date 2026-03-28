@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, Text, View, ScrollView, TouchableOpacity, Alert, ActivityIndicator, Platform } from 'react-native';
+import { StyleSheet, Text, View, ScrollView, TouchableOpacity, Alert, ActivityIndicator, Platform, RefreshControl } from 'react-native';
 import { COLORS, SPACING, SIZES } from '../theme/theme';
 import apiClient from '../api/client';
 import { CheckCircle2, Package, ChevronRight } from 'lucide-react-native';
@@ -42,6 +42,7 @@ const PackageScreen = ({ navigation }) => {
     const { logout } = useAuth();
     const [packages, setPackages] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [refreshing, setRefreshing] = useState(false);
 
     const fetchPackages = async () => {
         try {
@@ -54,7 +55,13 @@ const PackageScreen = ({ navigation }) => {
             }
         } finally {
             setLoading(false);
+            setRefreshing(false);
         }
+    };
+
+    const onRefresh = () => {
+        setRefreshing(true);
+        fetchPackages();
     };
 
     const handlePurchase = async (pkg) => {
@@ -63,16 +70,37 @@ const PackageScreen = ({ navigation }) => {
             // First check KYC status
             const kycRes = await apiClient.get('/kyc/user/kyc-status');
             const status = kycRes.data.status?.toLowerCase();
+            console.log('DEBUG: User KYC/Package Status:', status);
+
+            if (status === 'pending') {
+                if (Platform.OS === 'web') {
+                    alert('Order Under Review: Your package order is currently under review. Please wait for the admin to approve your request.');
+                } else {
+                    Alert.alert(
+                        'Order Under Review',
+                        'Your package order is currently under review. Please wait for the admin to approve your request.',
+                        [{ text: 'OK' }]
+                    );
+                }
+                setLoading(false);
+                return;
+            }
 
             if (status !== 'approved') {
-                Alert.alert(
-                    'KYC Required',
-                    'Your Identity Verification (KYC) must be approved by the admin before you can purchase a package. Please complete your KYC first.',
-                    [
-                        { text: 'Go to KYC', onPress: () => navigation.navigate('KYCVerification') },
-                        { text: 'Cancel', style: 'cancel' }
-                    ]
-                );
+                if (Platform.OS === 'web') {
+                    const goToKyc = window.confirm('KYC Required: Your Identity Verification (KYC) must be approved by the admin before you can purchase a package. Go to KYC Verification?');
+                    if (goToKyc) navigation.navigate('KYCVerification');
+                } else {
+                    Alert.alert(
+                        'KYC Required',
+                        'Your Identity Verification (KYC) must be approved by the admin before you can purchase a package. Please complete your KYC first.',
+                        [
+                            { text: 'Go to KYC', onPress: () => navigation.navigate('KYCVerification') },
+                            { text: 'Cancel', style: 'cancel' }
+                        ]
+                    );
+                }
+                setLoading(false);
                 return;
             }
 
@@ -105,7 +133,10 @@ const PackageScreen = ({ navigation }) => {
         <ScreenBackground>
             <View style={styles.container}>
                 <MainHeader title="Packages" navigation={navigation} hideProfile={true} />
-                <ScrollView contentContainerStyle={styles.content}>
+                <ScrollView 
+                    contentContainerStyle={styles.content}
+                    refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={COLORS.secondary} />}
+                >
                     <Text style={styles.title}>Investment Packages</Text>
                     <Text style={styles.subtitle}>Choose a package to start earning income</Text>
 

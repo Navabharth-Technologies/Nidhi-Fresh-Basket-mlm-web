@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { StyleSheet, Text, View, FlatList, TouchableOpacity, RefreshControl, ActivityIndicator, Image, Modal, TextInput, Alert, Platform, ScrollView } from 'react-native';
 import * as FileSystem from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
@@ -17,6 +17,12 @@ const AdminKYCListScreen = ({ navigation }) => {
     const [requests, setRequests] = useState([]);
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
+    const activeSectionRef = useRef(activeSection);
+
+    useEffect(() => {
+        activeSectionRef.current = activeSection;
+    }, [activeSection]);
+
     const formatDate = (date) => {
         const d = new Date(date);
         const month = '' + (d.getMonth() + 1);
@@ -78,6 +84,9 @@ const AdminKYCListScreen = ({ navigation }) => {
             // Fetch everything at once (Parallel)
             const [statsRes, dataRes] = await Promise.all(promises);
 
+            // ABORT if the user switched sections during the async fetch
+            if (activeSection !== activeSectionRef.current) return;
+
             // 1. Set Stats
             setStats(statsRes.data);
 
@@ -136,6 +145,13 @@ const AdminKYCListScreen = ({ navigation }) => {
     const onRefresh = () => {
         setRefreshing(true);
         fetchAllData();
+    };
+
+    const handleSectionChange = (id) => {
+        if (id === activeSection) return;
+        setRequests([]);
+        setLoading(true);
+        setActiveSection(id);
     };
 
     const handleWithdrawUpdateStatus = (withdrawId, status) => {
@@ -286,7 +302,7 @@ const AdminKYCListScreen = ({ navigation }) => {
             <AnimatedCard
                 style={[styles.dashboardCard, isActive && { borderColor: color, borderWidth: 2, backgroundColor: color + '10' }]}
                 hoverStyle={{ backgroundColor: color + '20', borderColor: color }}
-                onPress={() => setActiveSection(id)}
+                onPress={() => handleSectionChange(id)}
             >
                 <View style={[styles.cardIconBox, { backgroundColor: color + '20' }]}>
                     <Icon color={color} size={24} />
@@ -711,7 +727,15 @@ const styles = StyleSheet.create({
     infoVal: { fontSize: 14, fontWeight: 'bold', color: '#1e293b' },
     statusGroup: { flexDirection: 'row', alignItems: 'center' },
     actionRow: { flexDirection: 'row' },
-    smallActionBtn: { width: 36, height: 36, borderRadius: 18, justifyContent: 'center', alignItems: 'center', marginLeft: 8 },
+    smallActionBtn: {
+        width: 36,
+        height: 36,
+        borderRadius: 18,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginLeft: 8,
+        ...Platform.select({ web: { outlineStyle: 'none' } })
+    },
     rejectReasonBox: { marginTop: 10, padding: 8, backgroundColor: '#fef2f2', borderRadius: 6 },
     rejectionLabel: { fontSize: 10, color: '#ef4444', fontWeight: 'bold' },
 
@@ -727,21 +751,52 @@ const styles = StyleSheet.create({
     modalMsg: { fontSize: 14, color: '#666', textAlign: 'center', marginVertical: 10 },
     modalInput: { width: '100%', backgroundColor: '#f9fafb', borderRadius: 10, padding: 12, minHeight: 80, textAlignVertical: 'top', borderWidth: 1, borderColor: '#eee', marginBottom: 20 },
     modalActions: { flexDirection: 'row', width: '100%', justifyContent: 'space-between' },
-    modalCancel: { flex: 1, paddingVertical: 12, alignItems: 'center' },
-    modalConfirm: { flex: 1, paddingVertical: 12, alignItems: 'center', borderRadius: 10 },
+    modalCancel: {
+        flex: 1,
+        paddingVertical: 12,
+        alignItems: 'center',
+        ...Platform.select({ web: { outlineStyle: 'none' } })
+    },
+    modalConfirm: {
+        flex: 1,
+        paddingVertical: 12,
+        alignItems: 'center',
+        borderRadius: 10,
+        ...Platform.select({ web: { outlineStyle: 'none' } })
+    },
     modalCancelText: { color: '#666', fontWeight: 'bold' },
     modalConfirmText: { color: '#fff', fontWeight: 'bold' },
 
     // Export & Filter UI
     exportSection: { backgroundColor: 'transparent', marginHorizontal: 15, marginBottom: 15, borderRadius: 16, padding: 12, borderWidth: 2, borderColor: 'rgba(255, 255, 255, 0.5)' },
-    unifiedTrigger: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#f8fafc', padding: 12, borderRadius: 12, borderWidth: 1, borderColor: '#e2e8f0', marginBottom: 12 },
+    unifiedTrigger: { 
+        flexDirection: 'row', 
+        alignItems: 'center', 
+        backgroundColor: '#f8fafc', 
+        padding: 12, 
+        borderRadius: 12, 
+        borderWidth: 1, 
+        borderColor: '#e2e8f0', 
+        marginBottom: 12,
+        ...Platform.select({ web: { outlineStyle: 'none' } })
+    },
     unifiedTriggerIcon: { width: 36, height: 36, borderRadius: 10, backgroundColor: COLORS.secondary + '15', justifyContent: 'center', alignItems: 'center', marginRight: 12 },
     unifiedTriggerContent: { flex: 1 },
     unifiedTriggerLabel: { fontSize: 9, color: '#94a3b8', fontWeight: 'bold', letterSpacing: 0.5 },
     unifiedTriggerValue: { fontSize: 13, fontWeight: '700', color: '#1e293b' },
 
     presetsRow: { flexDirection: 'row', width: '100%', justifyContent: 'space-between', marginBottom: 15, marginTop: 10 },
-    presetBtn: { flex: 1, paddingVertical: 8, marginHorizontal: 3, borderRadius: 8, backgroundColor: '#f1f5f9', alignItems: 'center', borderWidth: 1, borderColor: '#e2e8f0' },
+    presetBtn: { 
+        flex: 1, 
+        paddingVertical: 8, 
+        marginHorizontal: 3, 
+        borderRadius: 8, 
+        backgroundColor: '#f1f5f9', 
+        alignItems: 'center', 
+        borderWidth: 1, 
+        borderColor: '#e2e8f0',
+        ...Platform.select({ web: { outlineStyle: 'none' } })
+    },
     presetBtnActive: { backgroundColor: COLORS.secondary, borderColor: COLORS.secondary },
     presetBtnText: { fontSize: 10, color: '#64748b', fontWeight: 'bold' },
     presetBtnTextActive: { color: '#fff' },
@@ -753,21 +808,43 @@ const styles = StyleSheet.create({
     modalRangeValue: { fontSize: 12, fontWeight: 'bold', color: '#1e293b' },
 
     calendarHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', width: '100%', marginBottom: 10, paddingHorizontal: 5 },
-    calNavBtn: { padding: 8, backgroundColor: '#f1f5f9', borderRadius: 10 },
+    calNavBtn: { 
+        padding: 8, 
+        backgroundColor: '#f1f5f9', 
+        borderRadius: 10,
+        ...Platform.select({ web: { outlineStyle: 'none' } })
+    },
     calendarTitleContainer: { alignItems: 'center' },
     calendarMonthName: { fontSize: 16, fontWeight: 'bold', color: '#1e293b' },
     yearSelector: { flexDirection: 'row', alignItems: 'center', marginTop: 1 },
     calendarYear: { fontSize: 11, color: '#94a3b8', fontWeight: '600', marginHorizontal: 10 },
     calendarGrid: { flexDirection: 'row', flexWrap: 'wrap', width: '100%', marginBottom: 5 },
     weekdayLabel: { width: `${100 / 7}%`, textAlign: 'center', fontSize: 11, fontWeight: 'bold', color: '#94a3b8', marginBottom: 8 },
-    calendarDay: { width: `${100 / 7}%`, height: 36, justifyContent: 'center', alignItems: 'center', borderRadius: 18, marginBottom: 2 },
+    calendarDay: { 
+        width: `${100 / 7}%`, 
+        height: 36, 
+        justifyContent: 'center', 
+        alignItems: 'center', 
+        borderRadius: 18, 
+        marginBottom: 2,
+        ...Platform.select({ web: { outlineStyle: 'none' } })
+    },
     calendarDayEmpty: { width: `${100 / 7}%`, height: 36 },
     calendarDayActive: { backgroundColor: COLORS.secondary },
     calendarDayText: { fontSize: 13, color: '#1e293b', fontWeight: '500' },
     calendarDayTextActive: { color: '#fff', fontWeight: 'bold' },
 
     exportActions: { flexDirection: 'row', justifyContent: 'space-between' },
-    exportBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 10, borderRadius: 10, marginHorizontal: 4 },
+    exportBtn: { 
+        flex: 1, 
+        flexDirection: 'row', 
+        alignItems: 'center', 
+        justifyContent: 'center', 
+        paddingVertical: 10, 
+        borderRadius: 10, 
+        marginHorizontal: 4,
+        ...Platform.select({ web: { outlineStyle: 'none' } })
+    },
     exportBtnText: { color: '#fff', fontWeight: 'bold', marginLeft: 6, fontSize: 13 },
 });
 

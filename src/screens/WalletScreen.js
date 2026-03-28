@@ -63,35 +63,40 @@ const TransactionItem = ({ item }) => {
 
     return (
         <AnimatedCard style={styles.txItem}>
-            <View style={[styles.txIcon, { backgroundColor: iconBg }]}>
-                {isCredit ? <ArrowDownLeft color={iconColor} size={16} /> : <ArrowUpRight color={iconColor} size={16} />}
-            </View>
             <View style={styles.txInfo}>
-                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                    <Text style={styles.txDesc} numberOfLines={1}>{title}</Text>
-                    {isWithdraw && (
-                        <View style={[styles.miniBadge,
-                        isApproved ? styles.miniApproved :
-                            isRejected ? styles.miniRejected : 
-                            item.status === 'processing' ? styles.miniProcessing :
-                            styles.miniPending
-                        ]}>
-                            <Text style={styles.miniBadgeText}>{item.status.toUpperCase()}</Text>
-                        </View>
-                    )}
+                <View style={styles.txMainRow}>
+                    <View style={[styles.txIcon, { backgroundColor: iconBg }]}>
+                        {isCredit ? <ArrowDownLeft color={iconColor} size={16} /> : <ArrowUpRight color={iconColor} size={16} />}
+                    </View>
+                    <View style={styles.txTitleInfo}>
+                        <Text style={styles.txDesc} numberOfLines={1}>{title}</Text>
+                        {isWithdraw && (
+                            <View style={[styles.miniBadge,
+                            isApproved ? styles.miniApproved :
+                                isRejected ? styles.miniRejected : 
+                                item.status === 'processing' ? styles.miniProcessing :
+                                styles.miniPending
+                            ]}>
+                                <Text style={styles.miniBadgeText}>{item.status.toUpperCase()}</Text>
+                            </View>
+                        )}
+                    </View>
                 </View>
-                <Text style={styles.txDate} numberOfLines={1}>
-                    {new Date(item.created_at).toLocaleDateString()} • {item.description || (isWithdraw ? `Request for ₹${item.amount}` : '')}
-                </Text>
-                {isRejected && item.rejection_reason && (
-                    <Text style={styles.rejectionText} numberOfLines={2}>
-                        Reason: {item.rejection_reason}
+                
+                <View style={styles.txSecondaryInfo}>
+                    <Text style={styles.txDate} numberOfLines={1}>
+                        {new Date(item.created_at).toLocaleDateString()} • {item.description || (isWithdraw ? `Request for ₹${item.amount}` : '')}
                     </Text>
-                )}
+                    {isRejected && item.rejection_reason && (
+                        <Text style={styles.rejectionText} numberOfLines={2}>
+                            Reason: {item.rejection_reason}
+                        </Text>
+                    )}
+                    <Text style={[styles.txAmount, { color: color, marginTop: 4 }]}>
+                        {prefix}₹{item.amount || '0.00'}
+                    </Text>
+                </View>
             </View>
-            <Text style={[styles.txAmount, { color: color }]}>
-                {prefix}₹{item.amount || '0.00'}
-            </Text>
         </AnimatedCard>
     );
 };
@@ -423,9 +428,7 @@ const styles = StyleSheet.create({
 
     // Transaction rows (matches Dashboard card style)
     txItem: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        backgroundColor: COLORS.glassBgDark, // Little transparent for sub-items
+        backgroundColor: COLORS.glassBgDark,
         padding: SPACING.m,
         borderRadius: 12,
         marginBottom: SPACING.s,
@@ -440,10 +443,13 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.05,
         shadowRadius: 2,
     },
-    txIcon: { width: 36, height: 36, borderRadius: 18, justifyContent: 'center', alignItems: 'center' },
-    txInfo: { flex: 1, marginLeft: SPACING.m, marginRight: SPACING.s },
+    txIcon: { width: 32, height: 32, borderRadius: 16, justifyContent: 'center', alignItems: 'center', marginRight: 12 },
+    txInfo: { flex: 1 },
+    txMainRow: { flexDirection: 'row', alignItems: 'center' },
+    txTitleInfo: { flex: 1, flexDirection: 'row', alignItems: 'center' },
+    txSecondaryInfo: { marginLeft: 44 }, // 32 (icon) + 12 (margin)
     txDesc: { color: '#1e293b', fontSize: 15, fontWeight: '600' },
-    txDate: { color: '#64748b', fontSize: 12, marginTop: 3 },
+    txDate: { color: '#64748b', fontSize: 12, marginTop: 2 },
     txAmount: { fontSize: 16, fontWeight: 'bold' },
     emptyText: { color: COLORS.textSecondary, textAlign: 'center', marginTop: 20 },
 

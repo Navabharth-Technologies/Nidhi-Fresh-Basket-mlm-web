@@ -167,7 +167,7 @@ const AppNavigation = () => {
                                                 ]);
                                             }
                                         }}
-                                        style={{ marginRight: 15, padding: 8, backgroundColor: '#fef2f2', borderRadius: 10 }}
+                                        style={{ marginRight: 15, padding: 8, backgroundColor: '#fef2f2', borderRadius: 10, ...Platform.select({ web: { outlineStyle: 'none' } }) }}
                                     >
                                         <Power color="#DC2626" size={20} />
                                     </TouchableOpacity>
@@ -194,7 +194,7 @@ const AppNavigation = () => {
                                                 ]);
                                             }
                                         }}
-                                        style={{ marginRight: 15, padding: 8, backgroundColor: '#fef2f2', borderRadius: 10 }}
+                                        style={{ marginRight: 15, padding: 8, backgroundColor: '#fef2f2', borderRadius: 10, ...Platform.select({ web: { outlineStyle: 'none' } }) }}
                                     >
                                         <Power color="#DC2626" size={20} />
                                     </TouchableOpacity>
@@ -221,7 +221,7 @@ const AppNavigation = () => {
                                                 ]);
                                             }
                                         }}
-                                        style={{ marginRight: 15, padding: 8, backgroundColor: '#fef2f2', borderRadius: 10 }}
+                                        style={{ marginRight: 15, padding: 8, backgroundColor: '#fef2f2', borderRadius: 10, ...Platform.select({ web: { outlineStyle: 'none' } }) }}
                                     >
                                         <Power color="#DC2626" size={20} />
                                     </TouchableOpacity>

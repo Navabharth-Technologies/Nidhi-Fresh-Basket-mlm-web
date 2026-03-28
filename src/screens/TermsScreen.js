@@ -1,5 +1,5 @@
 import React from 'react';
-import { StyleSheet, Text, View, ScrollView, useWindowDimensions, Platform } from 'react-native';
+import { StyleSheet, Text, View, ScrollView, useWindowDimensions, Platform, RefreshControl } from 'react-native';
 import { COLORS, SPACING, SIZES } from '../theme/theme';
 import ScreenBackground from '../components/ScreenBackground';
 import MainHeader from '../components/MainHeader';
@@ -7,12 +7,21 @@ import MainHeader from '../components/MainHeader';
 const TermsScreen = ({ navigation }) => {
     const { width } = useWindowDimensions();
     const isDesktop = width >= 768;
+    const [refreshing, setRefreshing] = React.useState(false);
+
+    const onRefresh = () => {
+        setRefreshing(true);
+        setTimeout(() => setRefreshing(false), 800);
+    };
 
     return (
         <ScreenBackground>
             <View style={styles.container}>
                 <MainHeader title="Terms & Conditions" navigation={navigation} showBack={true} hideProfile={true} />
-                <ScrollView contentContainerStyle={styles.contentContainer}>
+                <ScrollView 
+                    contentContainerStyle={styles.contentContainer}
+                    refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={COLORS.secondary} />}
+                >
                     <View style={[styles.card, isDesktop && styles.cardDesktop]}>
                         <Text style={styles.heading}>1. Acceptance of Terms</Text>
                         <Text style={styles.paragraph}>

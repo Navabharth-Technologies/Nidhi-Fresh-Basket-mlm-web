@@ -405,7 +405,6 @@ const styles = StyleSheet.create({
     header: { marginBottom: 30, alignItems: 'center' },
     headerDesktop: {
         width: '100%',
-        maxWidth: 600,
     },
     title: { fontSize: 32, color: '#1a531b', fontWeight: 'bold' },
     subtitle: { fontSize: 18, color: '#666', marginTop: 8, textAlign: 'center' },
@@ -426,7 +425,6 @@ const styles = StyleSheet.create({
     },
     formDesktop: {
         width: '100%',
-        maxWidth: 600,
     },
     label: { color: '#333', marginBottom: 8, fontSize: 16, fontWeight: '600' },
     phoneLabelRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 },

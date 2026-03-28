@@ -140,7 +140,15 @@ const DashboardScreen = ({ navigation }) => {
                 <ScrollView
                     style={{ flex: 1 }}
                     contentContainerStyle={styles.content}
-                    refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={COLORS.secondary} />}
+                    refreshControl={
+                        <RefreshControl 
+                            refreshing={refreshing} 
+                            onRefresh={onRefresh} 
+                            tintColor={COLORS.secondary} 
+                            colors={[COLORS.secondary]} 
+                        />
+                    }
+                    alwaysBounceVertical={true}
                 >
                     {/* Welcoming Header Section */}
                     <View style={[styles.logoSection, !isDesktop && { marginBottom: 10 }]}>

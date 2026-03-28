@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, Text, View, TouchableOpacity, ScrollView, Alert, Platform, Modal, TextInput, ActivityIndicator, useWindowDimensions, Image, LayoutAnimation, UIManager } from 'react-native';
+import { StyleSheet, Text, View, TouchableOpacity, ScrollView, Alert, Platform, Modal, TextInput, ActivityIndicator, useWindowDimensions, Image, LayoutAnimation, UIManager, RefreshControl } from 'react-native';
 import { COLORS, SPACING, SIZES } from '../theme/theme';
 import { useAuth } from '../store/AuthContext';
 import apiClient from '../api/client';
@@ -9,7 +9,7 @@ import * as ImagePicker from 'expo-image-picker';
 import MainHeader from '../components/MainHeader';
 import AnimatedCard from '../components/AnimatedCard';
 
-const ProfileItem = ({ label, value, icon: Icon, isSensitive, onReveal, revealed, iconColor }) => {
+const ProfileItem = ({ label, value, icon: Icon, isSensitive, onReveal, onHide, revealed, iconColor }) => {
     const maskValue = (val) => {
         if (!val) return 'N/A';
         if (revealed || !isSensitive) return val;
@@ -20,7 +20,7 @@ const ProfileItem = ({ label, value, icon: Icon, isSensitive, onReveal, revealed
     return (
         <AnimatedCard
             style={styles.item}
-            onPress={isSensitive && !revealed ? onReveal : null}
+            onPress={isSensitive ? (revealed ? onHide : onReveal) : null}
         >
             <View style={{ flexDirection: 'row', alignItems: 'center', width: '100%' }}>
                 <View style={[styles.iconBox, iconColor && { backgroundColor: iconColor + '10' }]}>
@@ -31,9 +31,12 @@ const ProfileItem = ({ label, value, icon: Icon, isSensitive, onReveal, revealed
                     <Text style={styles.value}>{maskValue(value)}</Text>
                 </View>
                 {isSensitive && (
-                    <View style={{ marginLeft: 'auto' }}>
+                    <TouchableOpacity 
+                        style={{ marginLeft: 'auto', padding: 5 }}
+                        onPress={revealed ? onHide : onReveal}
+                    >
                         {revealed ? <Eye color={COLORS.success} size={18} /> : <EyeOff color={COLORS.textSecondary} size={18} />}
-                    </View>
+                    </TouchableOpacity>
                 )}
             </View>
         </AnimatedCard>
@@ -53,6 +56,7 @@ const ProfileScreen = ({ navigation }) => {
     const [updatingImage, setUpdatingImage] = useState(false);
     const [isKYCOpen, setIsKYCOpen] = useState(false);
     const [imageModalVisible, setImageModalVisible] = useState(false);
+    const [refreshing, setRefreshing] = useState(false);
 
     if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
         UIManager.setLayoutAnimationEnabledExperimental(true);
@@ -73,7 +77,14 @@ const ProfileScreen = ({ navigation }) => {
             if (e.response && (e.response.status === 401 || e.response.status === 404)) {
                 logout();
             }
+        } finally {
+            setRefreshing(false);
         }
+    };
+
+    const onRefresh = () => {
+        setRefreshing(true);
+        fetchProfile();
     };
 
     useEffect(() => {
@@ -82,6 +93,14 @@ const ProfileScreen = ({ navigation }) => {
 
     const handleReveal = (type) => {
         setPasswordModal({ visible: true, type, password: '' });
+    };
+
+    const toggleReveal = (type) => {
+        if (revealedData[type]) {
+            setRevealedData(prev => ({ ...prev, [type]: false }));
+        } else {
+            handleReveal(type);
+        }
     };
 
     const confirmReveal = async () => {
@@ -211,7 +230,10 @@ const ProfileScreen = ({ navigation }) => {
         <ScreenBackground>
             <View style={styles.container}>
                 <MainHeader title="Profile" navigation={navigation} hideProfile={true} />
-                <ScrollView contentContainerStyle={styles.contentContainer}>
+                <ScrollView 
+                    contentContainerStyle={styles.contentContainer}
+                    refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={COLORS.secondary} />}
+                >
                     <View style={[isDesktop && styles.contentContainerDesktop]}>
                         <View style={[styles.header, isDesktop && styles.headerDesktop]}>
                             <TouchableOpacity style={styles.avatarContainer} onPress={handleProfileImagePress} disabled={updatingImage}>
@@ -271,12 +293,10 @@ const ProfileScreen = ({ navigation }) => {
                                             </View>
                                         </View>
                                         <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-
                                             <TouchableOpacity 
-                                                onPress={() => !revealedData.aadhar && handleReveal('aadhar')}
+                                                onPress={() => toggleReveal('aadhar')}
                                                 activeOpacity={0.7}
-                                                style={{ marginLeft: 12 }}
-                                                disabled={revealedData.aadhar}
+                                                style={{ marginLeft: 12, padding: 5 }}
                                             >
                                                 {revealedData.aadhar ? <Eye color={COLORS.success} size={18} /> : <EyeOff color={COLORS.textSecondary} size={18} />}
                                             </TouchableOpacity>
@@ -294,12 +314,10 @@ const ProfileScreen = ({ navigation }) => {
                                             </View>
                                         </View>
                                         <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-
                                             <TouchableOpacity 
-                                                onPress={() => !revealedData.pan && handleReveal('pan')}
+                                                onPress={() => toggleReveal('pan')}
                                                 activeOpacity={0.7}
-                                                style={{ marginLeft: 12 }}
-                                                disabled={revealedData.pan}
+                                                style={{ marginLeft: 12, padding: 5 }}
                                             >
                                                 {revealedData.pan ? <Eye color={COLORS.success} size={18} /> : <EyeOff color={COLORS.textSecondary} size={18} />}
                                             </TouchableOpacity>
@@ -314,6 +332,7 @@ const ProfileScreen = ({ navigation }) => {
                                         isSensitive
                                         revealed={revealedData.bank}
                                         onReveal={() => handleReveal('bank')}
+                                        onHide={() => toggleReveal('bank')}
                                     />
                                     <ProfileItem
                                         label="IFSC Code"
@@ -323,6 +342,7 @@ const ProfileScreen = ({ navigation }) => {
                                         isSensitive
                                         revealed={revealedData.ifsc}
                                         onReveal={() => handleReveal('ifsc')}
+                                        onHide={() => toggleReveal('ifsc')}
                                     />
                                     <ProfileItem
                                         label="UPI ID"
@@ -332,6 +352,7 @@ const ProfileScreen = ({ navigation }) => {
                                         isSensitive
                                         revealed={revealedData.upi}
                                         onReveal={() => handleReveal('upi')}
+                                        onHide={() => toggleReveal('upi')}
                                     />
                                 </View>
                             )}

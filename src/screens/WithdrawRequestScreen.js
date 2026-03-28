@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import {
     StyleSheet, Text, View, TextInput, TouchableOpacity,
-    ActivityIndicator, Alert, ScrollView, KeyboardAvoidingView, Platform, useWindowDimensions
+    ActivityIndicator, Alert, ScrollView, KeyboardAvoidingView, Platform, useWindowDimensions, RefreshControl
 } from 'react-native';
 import { COLORS, SPACING, SIZES } from '../theme/theme';
 import apiClient from '../api/client';
@@ -29,59 +29,67 @@ const WithdrawRequestScreen = ({ route }) => {
     const [amountError, setAmountError] = useState('');
     const [loading, setLoading] = useState(false);
     const [fetchingData, setFetchingData] = useState(true);
+    const [refreshing, setRefreshing] = useState(false);
 
-    React.useEffect(() => {
-        const loadBankDetails = async () => {
+    const loadBankDetails = async () => {
+        try {
+            // 1. Get Profile
+            const profileRes = await apiClient.get('/users/profile');
+            const profile = profileRes.data;
+            
+            // If user is currently pending but has NO previous approval OR is not active
+            // we block. But if they're active (repurchase case), we allow.
+            const isNeverApproved = (profile.kyc_status?.toLowerCase() === 'not submitted' || profile.kyc_status?.toLowerCase() === 'rejected') && !profile.is_active;
+            const isPendingFirstTime = profile.kyc_status?.toLowerCase() === 'pending' && !profile.is_active;
+
+            if (isNeverApproved || (isPendingFirstTime && !profile.bank_account_number)) {
+                Alert.alert('KYC Required', 'Your KYC must be approved before you can withdraw funds.', [
+                    { text: 'Complete KYC', onPress: () => navigation.navigate('KYCVerification') },
+                    { text: 'Go Back', onPress: () => navigation.goBack() }
+                ]);
+                return;
+            }
+
+            // 2. Get Payment details from KYC (Bank + UPI)
             try {
-                // 1. Get Profile
-                const profileRes = await apiClient.get('/users/profile');
-                const profile = profileRes.data;
-                
-                // If user is currently pending but has NO previous approval OR is not active
-                // we block. But if they're active (repurchase case), we allow.
-                const isNeverApproved = (profile.kyc_status?.toLowerCase() === 'not submitted' || profile.kyc_status?.toLowerCase() === 'rejected') && !profile.is_active;
-                const isPendingFirstTime = profile.kyc_status?.toLowerCase() === 'pending' && !profile.is_active;
-
-                if (isNeverApproved || (isPendingFirstTime && !profile.bank_account_number)) {
-                    Alert.alert('KYC Required', 'Your KYC must be approved before you can withdraw funds.', [
-                        { text: 'Complete KYC', onPress: () => navigation.navigate('KYCVerification') },
-                        { text: 'Go Back', onPress: () => navigation.goBack() }
-                    ]);
-                    return;
-                }
-
-                // 2. Get Payment details from KYC (Bank + UPI)
-                try {
-                    const paymentRes = await apiClient.get(`/kyc/payment-details/${profile.id}`);
-                    if (paymentRes.data) {
-                        setForm(prev => ({
-                            ...prev,
-                            name: profile.full_name || '',
-                            pan_number: profile.pan_number || '',
-                            bank_account: paymentRes.data.bank_account_number || profile.bank_account_number || '',
-                            ifsc_code: paymentRes.data.ifsc_code || profile.ifsc_code || '',
-                            upi_id: paymentRes.data.upi_id || '',
-                        }));
-                    }
-                } catch (err) {
-                    console.log('Payment details fetch failed:', err);
-                    // Fallback to profile data only
+                const paymentRes = await apiClient.get(`/kyc/payment-details/${profile.id}`);
+                if (paymentRes.data) {
                     setForm(prev => ({
                         ...prev,
                         name: profile.full_name || '',
                         pan_number: profile.pan_number || '',
-                        bank_account: profile.bank_account_number || '',
-                        ifsc_code: profile.ifsc_code || '',
+                        bank_account: paymentRes.data.bank_account_number || profile.bank_account_number || '',
+                        ifsc_code: paymentRes.data.ifsc_code || profile.ifsc_code || '',
+                        upi_id: paymentRes.data.upi_id || '',
                     }));
                 }
-            } catch (e) {
-                console.log('Error fetching bank details:', e);
-            } finally {
-                setFetchingData(false);
+            } catch (err) {
+                console.log('Payment details fetch failed:', err);
+                // Fallback to profile data only
+                setForm(prev => ({
+                    ...prev,
+                    name: profile.full_name || '',
+                    pan_number: profile.pan_number || '',
+                    bank_account: profile.bank_account_number || '',
+                    ifsc_code: profile.ifsc_code || '',
+                }));
             }
-        };
+        } catch (e) {
+            console.log('Error fetching bank details:', e);
+        } finally {
+            setFetchingData(false);
+            setRefreshing(false);
+        }
+    };
+
+    React.useEffect(() => {
         loadBankDetails();
     }, []);
+
+    const onRefresh = () => {
+        setRefreshing(true);
+        loadBankDetails();
+    };
 
     const handleAmountChange = (t) => {
         // Only allow numbers and one decimal point
@@ -165,7 +173,11 @@ const WithdrawRequestScreen = ({ route }) => {
                     style={{ flex: 1 }}
                     behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
                 >
-                    <ScrollView style={{ flex: 1 }} contentContainerStyle={isDesktop && styles.scrollContentDesktop}>
+                    <ScrollView 
+                        style={{ flex: 1 }} 
+                        contentContainerStyle={isDesktop && styles.scrollContentDesktop}
+                        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={COLORS.secondary} />}
+                    >
                         <View style={[styles.header, isDesktop && styles.headerDesktop]}>
                             <Landmark color={COLORS.secondary} size={32} />
                             <Text style={styles.title}>Withdraw Request</Text>

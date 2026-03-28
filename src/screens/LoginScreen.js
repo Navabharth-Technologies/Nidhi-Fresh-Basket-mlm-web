@@ -985,7 +985,7 @@ const styles = StyleSheet.create({
         flexDirection: 'column',
         justifyContent: 'center',
         alignItems: 'center',
-        maxWidth: 450,
+        width: '100%',
     },
     cardDesktop: {
         width: '100%',
