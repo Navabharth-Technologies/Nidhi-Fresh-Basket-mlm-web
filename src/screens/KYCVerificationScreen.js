@@ -782,11 +782,11 @@ const KYCVerificationScreen = ({ navigation, route }) => {
             onRequestClose={() => setPickerModal({ visible: false, field: null })}
         >
             <TouchableOpacity 
-                style={styles.modalOverlay} 
+                style={[styles.modalOverlay, isDesktop && { justifyContent: 'center' }]} 
                 activeOpacity={1} 
                 onPress={() => setPickerModal({ visible: false, field: null })}
             >
-                <View style={styles.pickerContainer}>
+                <View style={[styles.pickerContainer, isDesktop && { borderRadius: 24, marginHorizontal: 20, paddingBottom: 24 }]}>
                     <Text style={styles.pickerTitle}>Upload Photo</Text>
                     <Text style={styles.pickerSub}>Choose a source for your document</Text>
                     
