@@ -56,6 +56,7 @@ const DashboardScreen = ({ navigation }) => {
     const [purchasedPackages, setPurchasedPackages] = useState([]);
     const [kycDetails, setKycDetails] = useState({ status: 'Not Submitted' });
     const [refreshing, setRefreshing] = useState(false);
+    const [loading, setLoading] = useState(true);
 
     const [showAllPackages, setShowAllPackages] = useState(false);
     const displayedPackages = showAllPackages ? purchasedPackages : purchasedPackages.slice(0, 2);
@@ -88,6 +89,8 @@ const DashboardScreen = ({ navigation }) => {
             if (e.response && (e.response.status === 401 || e.response.status === 404)) {
                 logout();
             }
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -117,6 +120,17 @@ const DashboardScreen = ({ navigation }) => {
     const purchaseButtonProps = Platform.OS === 'web'
         ? { onClick: () => navigation.navigate('PackageSelection') }
         : { onPress: () => navigation.navigate('PackageSelection') };
+
+    if (loading) {
+        return (
+            <ScreenBackground subtle={false}>
+                <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+                    <ActivityIndicator size="large" color={COLORS.secondary} />
+                    <Text style={{ marginTop: 10, color: COLORS.secondary, fontWeight: '600' }}>Loading Dashboard...</Text>
+                </View>
+            </ScreenBackground>
+        );
+    }
 
     return (
         <ScreenBackground subtle={false}>
@@ -244,12 +258,14 @@ const DashboardScreen = ({ navigation }) => {
                             )}
 
                             <AnimatedCard
-                                style={[styles.verifyBtn, { marginTop: 15 }]}
+                                style={[styles.verifyBtn, { marginTop: 15, paddingVertical: 0 }]}
                                 onPress={() => navigation.navigate('KYCVerification')}
                             >
-                                <Text style={styles.verifyBtnText}>
-                                    {(kycDetails.status?.toLowerCase() === 'approved' || purchasedPackages.length > 0) ? 'View Identity Info' : 'Verify Now'}
-                                </Text>
+                                <View style={{ paddingVertical: 14, width: '100%', alignItems: 'center' }}>
+                                    <Text style={styles.verifyBtnText}>
+                                        {(kycDetails.status?.toLowerCase() === 'approved' || purchasedPackages.length > 0) ? 'View Identity Info' : 'Verify Now'}
+                                    </Text>
+                                </View>
                             </AnimatedCard>
                         </View>
                     </View>
@@ -539,7 +555,7 @@ const styles = StyleSheet.create({
     verifyBtn: {
         backgroundColor: COLORS.primary,
         width: '100%',
-        paddingVertical: 14,
+        paddingVertical: 0,
         borderRadius: 12,
         alignItems: 'center',
         shadowColor: COLORS.primary,
@@ -547,7 +563,8 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.3,
         shadowRadius: 8,
         elevation: 4,
-        marginTop: 15
+        marginTop: 15,
+        overflow: 'hidden'
     },
     verifyBtnText: {
         color: '#fff',

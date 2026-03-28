@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { StyleSheet, Text, View, TextInput, TouchableOpacity, ScrollView, Alert, ActivityIndicator, Image, useWindowDimensions } from 'react-native';
+import { StyleSheet, Text, View, TextInput, TouchableOpacity, ScrollView, Alert, ActivityIndicator, Image, useWindowDimensions, Platform } from 'react-native';
 import apiClient from '../api/client';
 import { Lock, KeyRound, ChevronLeft, Eye, EyeOff } from 'lucide-react-native';
 import ScreenBackground from '../components/ScreenBackground';

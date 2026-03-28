@@ -38,7 +38,7 @@ const AnimatedCard = ({ children, style, onPress, hoverStyle, disableHover = fal
                     }
                 }}
                 onPress={onPress}
-                style={{ flex: 1 }}
+                style={[{ width: '100%', flex: 1 }, Platform.OS === 'web' && { height: '100%' }]}
             >
                 {children}
             </Pressable>

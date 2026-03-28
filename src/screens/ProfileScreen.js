@@ -196,7 +196,16 @@ const ProfileScreen = ({ navigation }) => {
         }
     };
 
-    if (!profile) return null;
+    if (!profile) {
+        return (
+            <ScreenBackground>
+                <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+                    <ActivityIndicator size="large" color={COLORS.secondary} />
+                    <Text style={{ marginTop: 10, color: COLORS.secondary, fontWeight: '600' }}>Loading Profile...</Text>
+                </View>
+            </ScreenBackground>
+        );
+    }
 
     return (
         <ScreenBackground>

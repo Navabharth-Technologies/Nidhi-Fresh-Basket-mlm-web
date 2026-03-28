@@ -459,16 +459,18 @@ const KYCVerificationScreen = ({ navigation, route }) => {
             <ScreenBackground>
                 <View style={styles.container}>
                     <MainHeader title="KYC Status" navigation={navigation} showBack hideProfile={true} />
-                    <View style={[styles.statusCard, isDesktop && styles.statusCardDesktop]}>
-                        <CheckCircle color="#10b981" size={64} style={{ marginBottom: 20 }} />
-                        <Text style={styles.statusTitle}>KYC Approved</Text>
-                        <Text style={styles.statusDesc}>Your KYC has been verified successfully. You can now enjoy full access to the MLM system.</Text>
-                        <TouchableOpacity 
-                            style={styles.backBtnLarge} 
-                            onPress={() => navigation.navigate('Main')}
-                        >
-                            <Text style={styles.backBtnText}>Go to Dashboard</Text>
-                        </TouchableOpacity>
+                    <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 }}>
+                        <View style={[styles.statusCard, isDesktop && styles.statusCardDesktop]}>
+                            <CheckCircle color="#10b981" size={64} style={{ marginBottom: 20 }} />
+                            <Text style={styles.statusTitle}>KYC Approved</Text>
+                            <Text style={styles.statusDesc}>Your KYC has been verified successfully. You can now enjoy full access to the MLM system.</Text>
+                            <TouchableOpacity 
+                                style={styles.backBtnLarge} 
+                                onPress={() => navigation.navigate('Main')}
+                            >
+                                <Text style={styles.backBtnText}>Go to Dashboard</Text>
+                            </TouchableOpacity>
+                        </View>
                     </View>
                 </View>
             </ScreenBackground>
