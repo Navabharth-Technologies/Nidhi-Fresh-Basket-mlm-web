@@ -42,6 +42,7 @@ const PackageScreen = ({ navigation }) => {
     const { logout } = useAuth();
     const [packages, setPackages] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [processingId, setProcessingId] = useState(null);
     const [refreshing, setRefreshing] = useState(false);
 
     const fetchPackages = async () => {
@@ -66,7 +67,7 @@ const PackageScreen = ({ navigation }) => {
 
     const handlePurchase = async (pkg) => {
         try {
-            setLoading(true);
+            setProcessingId(pkg.id);
             // First check KYC status
             const kycRes = await apiClient.get('/kyc/user/kyc-status');
             const status = kycRes.data.status?.toLowerCase();
@@ -82,7 +83,7 @@ const PackageScreen = ({ navigation }) => {
                         [{ text: 'OK' }]
                     );
                 }
-                setLoading(false);
+                setProcessingId(null);
                 return;
             }
 
@@ -100,7 +101,7 @@ const PackageScreen = ({ navigation }) => {
                         ]
                     );
                 }
-                setLoading(false);
+                setProcessingId(null);
                 return;
             }
 
@@ -117,9 +118,11 @@ const PackageScreen = ({ navigation }) => {
             });
         } catch (e) {
             console.error('KYC check failed', e);
-            Alert.alert('Error', 'Failed to verify KYC status. Please try again.');
+            const msg = 'Failed to verify KYC status. Please try again.';
+            if (Platform.OS === 'web') alert(msg);
+            else Alert.alert('Error', msg);
         } finally {
-            setLoading(false);
+            setProcessingId(null);
         }
     };
 
@@ -145,7 +148,7 @@ const PackageScreen = ({ navigation }) => {
                             key={pkg.id}
                             item={pkg}
                             onPurchase={() => handlePurchase(pkg)}
-                            loading={false}
+                            loading={processingId === pkg.id}
                         />
                     ))}
                 </ScrollView>
