@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { StyleSheet, Text, View, ScrollView, TouchableOpacity, TextInput, Alert, Platform, ActivityIndicator, Image, useWindowDimensions, RefreshControl } from 'react-native';
+import { StyleSheet, Text, View, ScrollView, TouchableOpacity, TextInput, Alert, Platform, ActivityIndicator, Image, useWindowDimensions, RefreshControl, Modal } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { COLORS, SPACING, SIZES } from '../theme/theme';
 import apiClient from '../api/client';
@@ -32,9 +32,9 @@ const KYCVerificationScreen = ({ navigation, route }) => {
     const [submitting, setSubmitting] = useState(false);
     const [refreshing, setRefreshing] = useState(false);
     const [purchasedPackages, setPurchasedPackages] = useState([]);
-    const [showSuccessCard, setShowSuccessCard] = useState(!route.params?.jumpToStep);
     const isRejected = kycStatus?.toLowerCase() === 'rejected';
     const isRepurchaseMode = !!route.params?.jumpToStep; // True when user is repurchasing a package
+    const [pickerModal, setPickerModal] = useState({ visible: false, field: null });
 
     const [form, setForm] = useState({
         package_name: '',
@@ -180,12 +180,13 @@ const KYCVerificationScreen = ({ navigation, route }) => {
         }
     };
 
-    const pickImageWeb = (field) => {
-        // Use native HTML file input with accept="image/*"
-        // On mobile browsers this automatically prompts Camera + Gallery choice
+    const pickImageWeb = (field, mode = 'gallery') => {
         const input = document.createElement('input');
         input.type = 'file';
         input.accept = 'image/*';
+        if (mode === 'camera') {
+            input.capture = 'environment';
+        }
         input.onchange = (e) => {
             const file = e.target.files[0];
             if (file) {
@@ -197,20 +198,22 @@ const KYCVerificationScreen = ({ navigation, route }) => {
         input.click();
     };
 
-    const pickImage = async (field) => {
+    const pickImage = (field) => {
+        setPickerModal({ visible: true, field });
+    };
+
+    const handlePickSource = async (source) => {
+        const field = pickerModal.field;
+        setPickerModal({ visible: false, field: null });
+
         if (Platform.OS === 'web') {
-            pickImageWeb(field);
+            pickImageWeb(field, source);
         } else {
-            // Mobile: Show Choice
-            Alert.alert(
-                'Upload Photo',
-                'Select a source for your image',
-                [
-                    { text: 'Take Photo (Camera)', onPress: () => openCamera(field) },
-                    { text: 'Choose from Gallery', onPress: () => openGallery(field) },
-                    { text: 'Cancel', style: 'cancel' }
-                ]
-            );
+            if (source === 'camera') {
+                await openCamera(field);
+            } else {
+                await openGallery(field);
+            }
         }
     };
 
@@ -771,6 +774,47 @@ const KYCVerificationScreen = ({ navigation, route }) => {
                 </View>
             )}
         </ScrollView>
+        {/* Source Picker Modal */}
+        <Modal
+            visible={pickerModal.visible}
+            transparent={true}
+            animationType="fade"
+            onRequestClose={() => setPickerModal({ visible: false, field: null })}
+        >
+            <TouchableOpacity 
+                style={styles.modalOverlay} 
+                activeOpacity={1} 
+                onPress={() => setPickerModal({ visible: false, field: null })}
+            >
+                <View style={styles.pickerContainer}>
+                    <Text style={styles.pickerTitle}>Upload Photo</Text>
+                    <Text style={styles.pickerSub}>Choose a source for your document</Text>
+                    
+                    <View style={styles.pickerOptions}>
+                        <TouchableOpacity style={styles.pickerBtn} onPress={() => handlePickSource('camera')}>
+                            <View style={[styles.pickerIcon, { backgroundColor: '#f0fdf4' }]}>
+                                <Camera color={COLORS.secondary} size={28} />
+                            </View>
+                            <Text style={styles.pickerBtnText}>Camera</Text>
+                        </TouchableOpacity>
+
+                        <TouchableOpacity style={styles.pickerBtn} onPress={() => handlePickSource('gallery')}>
+                            <View style={[styles.pickerIcon, { backgroundColor: '#eff6ff' }]}>
+                                <Upload color="#3b82f6" size={28} />
+                            </View>
+                            <Text style={styles.pickerBtnText}>Files / Gallery</Text>
+                        </TouchableOpacity>
+                    </View>
+
+                    <TouchableOpacity 
+                        style={styles.pickerCancel} 
+                        onPress={() => setPickerModal({ visible: false, field: null })}
+                    >
+                        <Text style={styles.pickerCancelText}>Cancel</Text>
+                    </TouchableOpacity>
+                </View>
+            </TouchableOpacity>
+        </Modal>
         </View>
     </ScreenBackground>
     );
@@ -907,7 +951,73 @@ const styles = StyleSheet.create({
         shadowRadius: 8,
         elevation: 4
     },
-    submitBtnText: { color: '#fff', fontSize: 18, fontWeight: 'bold', letterSpacing: 0.5 }
+    submitBtnText: { color: '#fff', fontSize: 18, fontWeight: 'bold', letterSpacing: 0.5 },
+
+    // Source Picker Styles
+    modalOverlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0,0,0,0.5)',
+        justifyContent: 'flex-end',
+        alignItems: 'center',
+    },
+    pickerContainer: {
+        backgroundColor: '#fff',
+        width: '100%',
+        maxWidth: 500,
+        borderTopLeftRadius: 24,
+        borderTopRightRadius: 24,
+        padding: 24,
+        paddingBottom: Platform.OS === 'ios' ? 40 : 24,
+    },
+    pickerTitle: {
+        fontSize: 20,
+        fontWeight: 'bold',
+        color: '#1e293b',
+        textAlign: 'center',
+        marginBottom: 8,
+    },
+    pickerSub: {
+        fontSize: 14,
+        color: '#64748b',
+        textAlign: 'center',
+        marginBottom: 24,
+    },
+    pickerOptions: {
+        flexDirection: 'row',
+        justifyContent: 'space-around',
+        marginBottom: 24,
+        gap: 20
+    },
+    pickerBtn: {
+        alignItems: 'center',
+        flex: 1,
+    },
+    pickerIcon: {
+        width: 64,
+        height: 64,
+        borderRadius: 32,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginBottom: 10,
+        borderWidth: 1,
+        borderColor: 'rgba(0,0,0,0.05)',
+    },
+    pickerBtnText: {
+        fontSize: 15,
+        fontWeight: '600',
+        color: '#334155',
+    },
+    pickerCancel: {
+        paddingVertical: 16,
+        borderRadius: 12,
+        backgroundColor: '#f1f5f9',
+        alignItems: 'center',
+    },
+    pickerCancelText: {
+        fontSize: 16,
+        fontWeight: 'bold',
+        color: '#475569',
+    },
 });
 
 export default KYCVerificationScreen;
