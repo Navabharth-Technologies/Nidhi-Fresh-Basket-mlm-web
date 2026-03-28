@@ -96,8 +96,13 @@ const DashboardScreen = ({ navigation }) => {
 
     const onRefresh = async () => {
         setRefreshing(true);
-        await fetchData();
-        setRefreshing(false);
+        try {
+            await fetchData();
+        } catch (e) {
+            console.error('Refresh failed:', e);
+        } finally {
+            setRefreshing(false);
+        }
     };
 
     useEffect(() => {
@@ -146,10 +151,13 @@ const DashboardScreen = ({ navigation }) => {
                             onRefresh={onRefresh} 
                             tintColor={COLORS.secondary} 
                             colors={[COLORS.secondary]} 
+                            progressBackgroundColor="#ffffff"
                         />
                     }
                     alwaysBounceVertical={true}
+                    scrollEventThrottle={16}
                 >
+                    <View style={{ minHeight: '101%', display: 'flex' }}>
                     {/* Welcoming Header Section */}
                     <View style={[styles.logoSection, !isDesktop && { marginBottom: 10 }]}>
                         <Image
@@ -342,6 +350,7 @@ const DashboardScreen = ({ navigation }) => {
                             </View>
                         </View>
                     )}
+                    </View>
                 </ScrollView>
             </View>
         </ScreenBackground>
