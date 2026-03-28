@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { StyleSheet, Text, View, ScrollView, TouchableOpacity, Alert, RefreshControl, Dimensions, useWindowDimensions } from 'react-native';
+import { StyleSheet, Text, View, ScrollView, TouchableOpacity, Alert, RefreshControl, useWindowDimensions } from 'react-native';
 import { COLORS, SPACING } from '../theme/theme';
 import apiClient from '../api/client';
 import { ArrowUpRight, ArrowDownLeft, Wallet, Gift, ArrowRight } from 'lucide-react-native';
@@ -21,7 +21,6 @@ if (Platform.OS === 'web') {
     }
 }
 
-const { width } = Dimensions.get('window');
 
 const TransactionItem = ({ item }) => {
     const isWithdraw = !!item.status; // Withdrawal requests have a status field
@@ -186,7 +185,7 @@ const WalletScreen = () => {
                         <View style={styles.sectionHeader}>
                             <Text style={styles.sectionTitle}>My Wallets</Text>
                         </View>
-                        <View style={styles.sectionBody}>
+                        <View style={[styles.sectionBody, isDesktop && styles.sectionBodyDesktop]}>
                             <View style={styles.cardsRow}>
                                 {/* Coupon Wallet Card */}
                                 <AnimatedCard
@@ -245,7 +244,7 @@ const WalletScreen = () => {
                                 {activeTab === 'coupon' ? 'Coupon Transactions' : 'Commission Transactions'}
                             </Text>
                         </View>
-                        <View style={styles.sectionBody}>
+                        <View style={[styles.sectionBody, isDesktop && styles.sectionBodyDesktop]}>
                             {activeTab === 'coupon' ? (
                                 couponTx.length > 0 ? (
                                     couponTx.map((item) => <TransactionItem key={`coup-${item.id}`} item={item} />)
@@ -289,7 +288,7 @@ const styles = StyleSheet.create({
         })
     },
     headerDesktop: {
-        paddingHorizontal: '10%',
+        paddingHorizontal: '2%',
         borderBottomLeftRadius: 0,
         borderBottomRightRadius: 0,
     },
@@ -310,7 +309,7 @@ const styles = StyleSheet.create({
         overflow: 'hidden',
     },
     sectionDesktop: {
-        width: '98%',
+        width: '100%',
     },
     sectionHeader: {
         backgroundColor: COLORS.glassBgDark,
@@ -338,19 +337,21 @@ const styles = StyleSheet.create({
             web: { backdropFilter: 'blur(12px)' }
         })
     },
-
-    // Wallet cards inside section
+    sectionBodyDesktop: {
+        alignItems: 'stretch',
+    },
     cardsRow: {
         flexDirection: 'row',
-        justifyContent: 'center',
-        gap: 15,
+        justifyContent: 'space-between',
+        gap: 10,
+        width: '100%',
     },
     walletCard: {
         flex: 1,
         backgroundColor: COLORS.glassBgDark,
         borderRadius: 16,
-        padding: 20,
-        marginBottom: 20,
+        padding: 12,
+        marginBottom: 10,
         borderWidth: 1.5,
         borderColor: COLORS.glassBorder,
         ...Platform.select({
@@ -364,6 +365,7 @@ const styles = StyleSheet.create({
     },
     walletCardDesktop: {
         flex: 1,
+        padding: 20,
     },
     walletCardActive: {
         borderColor: COLORS.secondary,

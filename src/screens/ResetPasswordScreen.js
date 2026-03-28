@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
-import { StyleSheet, Text, View, TextInput, TouchableOpacity, ScrollView, Alert, ActivityIndicator, Image } from 'react-native';
+import { StyleSheet, Text, View, TextInput, TouchableOpacity, ScrollView, Alert, ActivityIndicator, Image, useWindowDimensions } from 'react-native';
 import apiClient from '../api/client';
-import { Lock, KeyRound, ChevronLeft } from 'lucide-react-native';
+import { Lock, KeyRound, ChevronLeft, Eye, EyeOff } from 'lucide-react-native';
 import ScreenBackground from '../components/ScreenBackground';
 
 const ResetPasswordScreen = ({ navigation, route }) => {
+    const { width } = useWindowDimensions();
+    const isDesktop = width >= 768;
     const { phone } = route.params || {};
     const [otp, setOtp] = useState('');
     const [newPassword, setNewPassword] = useState('');
@@ -47,7 +49,7 @@ const ResetPasswordScreen = ({ navigation, route }) => {
         <ScreenBackground>
             <ScrollView contentContainerStyle={styles.container}>
                 <TouchableOpacity 
-                    style={styles.backButton} 
+                    style={[styles.backButton, isDesktop && styles.backButtonDesktop]} 
                     onPress={() => {
                         if (navigation.canGoBack()) {
                             navigation.goBack();
@@ -60,7 +62,7 @@ const ResetPasswordScreen = ({ navigation, route }) => {
                     <Text style={styles.backText}>Back</Text>
                 </TouchableOpacity>
 
-                <View style={styles.header}>
+                <View style={[styles.header, isDesktop && styles.headerDesktop]}>
                     <Image
                         source={require('../../assets/nidhi_logo.png')}
                         style={styles.logo}
@@ -70,7 +72,7 @@ const ResetPasswordScreen = ({ navigation, route }) => {
                     <Text style={styles.subtitle}>Enter the 6-digit OTP sent to your phone {phone} and your new password.</Text>
                 </View>
 
-                <View style={styles.form}>
+                <View style={[styles.form, isDesktop && styles.formDesktop]}>
                     <View style={[styles.inputContainer, focusedField === 'otp' && styles.inputContainerFocused]}>
                         <KeyRound color="#1a531b" size={20} style={styles.inputIcon} />
                         <TextInput
@@ -99,7 +101,7 @@ const ResetPasswordScreen = ({ navigation, route }) => {
                             onBlur={() => setFocusedField(null)}
                         />
                         <TouchableOpacity onPress={() => setShowPassword(!showPassword)} style={styles.eyeIconBtn}>
-                            <Lock size={18} color={showPassword ? "#1a531b" : "#ccc"} />
+                            {showPassword ? <Eye size={18} color="#1a531b" /> : <EyeOff size={18} color="#ccc" />}
                         </TouchableOpacity>
                     </View>
 
@@ -117,7 +119,7 @@ const ResetPasswordScreen = ({ navigation, route }) => {
                             onBlur={() => setFocusedField(null)}
                         />
                         <TouchableOpacity onPress={() => setShowConfirmPassword(!showConfirmPassword)} style={styles.eyeIconBtn}>
-                            <Lock size={18} color={showConfirmPassword ? "#1a531b" : "#ccc"} />
+                            {showConfirmPassword ? <Eye size={18} color="#1a531b" /> : <EyeOff size={18} color="#ccc" />}
                         </TouchableOpacity>
                     </View>
 
@@ -150,6 +152,11 @@ const styles = StyleSheet.create({
         marginTop: 40,
         marginBottom: 20,
     },
+    backButtonDesktop: {
+        width: '100%',
+        maxWidth: 600,
+        alignSelf: 'center',
+    },
     backText: {
         fontSize: 16,
         color: '#1a531b',
@@ -159,6 +166,11 @@ const styles = StyleSheet.create({
     header: {
         alignItems: 'center',
         marginBottom: 40,
+    },
+    headerDesktop: {
+        width: '100%',
+        maxWidth: 600,
+        alignSelf: 'center',
     },
     logo: {
         width: 150,
@@ -179,6 +191,10 @@ const styles = StyleSheet.create({
     },
     form: {
         width: '100%',
+    },
+    formDesktop: {
+        maxWidth: 600,
+        alignSelf: 'center',
     },
     inputContainer: {
         flexDirection: 'row',
@@ -223,8 +239,13 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
     },
     eyeIconBtn: {
-        padding: 5,
-        marginLeft: 5,
+        width: 44,
+        height: 44,
+        justifyContent: 'center',
+        alignItems: 'center',
+        ...Platform.select({
+            web: { cursor: 'pointer' }
+        })
     }
 });
 

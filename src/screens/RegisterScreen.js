@@ -441,8 +441,9 @@ const styles = StyleSheet.create({
         backgroundColor: 'rgba(255, 255, 255, 0.9)',
         borderRadius: 10,
         marginBottom: 16,
-        borderWidth: 1,
+        borderWidth: 1.5,
         borderColor: '#dee2e6',
+        paddingRight: 12,
     },
     passwordInput: {
         flex: 1,
@@ -456,7 +457,13 @@ const styles = StyleSheet.create({
         borderWidth: 2,
     },
     eyeIcon: {
-        padding: 14,
+        width: 44,
+        height: 44,
+        justifyContent: 'center',
+        alignItems: 'center',
+        ...Platform.select({
+            web: { cursor: 'pointer' }
+        })
     },
     button: { backgroundColor: '#217323', padding: 16, borderRadius: 10, alignItems: 'center', marginTop: 10 },
     buttonText: { color: '#ffffff', fontWeight: 'bold', fontSize: 20 },

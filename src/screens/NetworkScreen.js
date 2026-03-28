@@ -240,7 +240,7 @@ const NetworkScreen = ({ navigation }) => {
                             </View>
                         </AnimatedCard>
                     </View>
-                    <View style={styles.referralBox}>
+                    <View style={[styles.referralBox, isDesktop && styles.referralBoxDesktop]}>
                         <Text style={styles.referralLink} numberOfLines={1}>{referralUrl}</Text>
                         <TouchableOpacity style={styles.copyButton} onPress={handleCopyLink}>
                             <Text style={styles.copyButtonText}>Copy</Text>
@@ -293,10 +293,13 @@ const styles = StyleSheet.create({
     header: {
         backgroundColor: 'transparent',
         padding: SPACING.l,
-        alignItems: 'center',
+        alignItems: 'flex-start',
         paddingBottom: SPACING.m
     },
     headerDesktop: {
+        width: '100%',
+        maxWidth: 1000,
+        alignSelf: 'center',
         paddingHorizontal: SPACING.xl,
         paddingTop: SPACING.xl,
         paddingBottom: SPACING.l,
@@ -586,6 +589,8 @@ const styles = StyleSheet.create({
         borderRadius: 16,
         borderWidth: 1.5,
         borderColor: COLORS.glassBorder,
+        width: '98%',
+        alignSelf: 'center',
         ...Platform.select({
             web: { backdropFilter: 'blur(12px)' }
         })
@@ -605,6 +610,11 @@ const styles = StyleSheet.create({
         borderColor: 'rgba(255, 255, 255, 0.3)',
         paddingHorizontal: 12,
         paddingVertical: 10,
+        width: '100%',
+    },
+    referralBoxDesktop: {
+        width: '100%',
+        alignSelf: 'stretch',
     },
     referralLink: {
         flex: 1,

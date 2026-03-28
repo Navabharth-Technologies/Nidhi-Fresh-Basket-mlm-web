@@ -40,7 +40,7 @@ const AboutScreen = ({ navigation }) => {
                             Nidhi Fresh Basket is more than just an application; it's a revolutionary ecosystem designed to bring freshness to your table and prosperity to your wallet. We specialize in providing the highest quality fruits and vegetables while empowering our community through a structured reward-based networking model.
                         </Text>
 
-                        <View style={styles.missionVision}>
+                        <View style={[styles.missionVision, !isDesktop && { flexDirection: 'column' }]}>
                             <View style={styles.missionBox}>
                                 <Target color={COLORS.secondary} size={24} />
                                 <Text style={styles.mvTitle}>Our Mission</Text>
@@ -153,7 +153,7 @@ const styles = StyleSheet.create({
         justifyContent: 'space-between',
         marginBottom: 35,
         gap: 15,
-        flexWrap: 'wrap',
+        width: '100%',
     },
     missionBox: {
         flex: 1,

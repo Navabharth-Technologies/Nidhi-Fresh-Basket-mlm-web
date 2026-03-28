@@ -484,7 +484,7 @@ const ProfileScreen = ({ navigation }) => {
                             </TouchableOpacity>
                         </Modal>
 
-                        <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout}>
+                        <TouchableOpacity style={[styles.logoutBtn, isDesktop && styles.logoutBtnDesktop]} onPress={handleLogout}>
                             <Power color={COLORS.error} size={20} />
                             <Text style={styles.logoutText}>Logout</Text>
                         </TouchableOpacity>
@@ -652,6 +652,10 @@ const styles = StyleSheet.create({
         ...Platform.select({
             web: { backdropFilter: 'blur(8px)' }
         })
+    },
+    logoutBtnDesktop: {
+        width: 300,
+        alignSelf: 'center',
     },
     logoutText: { color: COLORS.error, fontWeight: 'bold', fontSize: 16, marginLeft: 10 },
 

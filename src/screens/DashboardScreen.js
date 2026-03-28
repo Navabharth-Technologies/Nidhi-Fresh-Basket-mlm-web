@@ -19,11 +19,11 @@ if (Platform.OS === 'web') {
     }
 }
 
-const StatCard = ({ title, value, icon: Icon, color, onPress, fullWidth }) => {
+const StatCard = ({ title, value, icon: Icon, color, onPress, fullWidth, isDesktop }) => {
     return (
         <AnimatedCard
             onPress={onPress}
-            style={[styles.card, fullWidth && styles.fullWidthCard]}
+            style={[styles.card, fullWidth && styles.fullWidthCard, !fullWidth && { flex: 1 }]}
         >
             <View style={{ flexDirection: fullWidth ? 'row' : 'column', alignItems: fullWidth ? 'center' : 'stretch' }}>
                 <View style={[styles.iconContainer, { backgroundColor: color + '20', marginBottom: fullWidth ? 0 : 10, marginRight: fullWidth ? 14 : 0 }]}>
@@ -129,13 +129,13 @@ const DashboardScreen = ({ navigation }) => {
                     refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={COLORS.secondary} />}
                 >
                     {/* Welcoming Header Section */}
-                    <View style={[styles.logoSection, !isDesktop && { flexDirection: 'column', width: '100%', marginBottom: 10 }]}>
+                    <View style={[styles.logoSection, !isDesktop && { marginBottom: 10 }]}>
                         <Image
                             source={require('../../assets/nidhi_logo.png')}
-                            style={[styles.nidhiLogo, !isDesktop && { width: 150, height: 150, marginBottom: -26 }]}
+                            style={[styles.nidhiLogo, !isDesktop ? { width: 150, height: 150, marginBottom: -26 } : { marginBottom: -20 }]}
                             resizeMode="contain"
                         />
-                        <Text style={[styles.welcomeText, !isDesktop && { textAlign: 'center', marginLeft: 0, fontSize: 22 }]}>
+                        <Text style={[styles.welcomeText, !isDesktop && { fontSize: 22 }]}>
                             Welcome back, {profile?.full_name?.split(' ')[0] || 'Member'}!
                         </Text>
                     </View>
@@ -155,7 +155,7 @@ const DashboardScreen = ({ navigation }) => {
                                             return (
                                                 <AnimatedCard 
                                                     key={pkg.id || index} 
-                                                    style={styles.packageCardGrid}
+                                                    style={[styles.packageCardGrid, !isDesktop && { width: '100%' }]}
                                                     disableHover={true}
                                                 >
                                                     <View style={styles.pkgTopRow}>
@@ -270,39 +270,50 @@ const DashboardScreen = ({ navigation }) => {
                                         bgColor="rgba(220, 252, 231, 0.6)"
                                         onPress={() => navigation.navigate('Wallet')}
                                         fullWidth={true}
+                                        isDesktop={isDesktop}
                                     />
-                                    <StatCard
-                                        title="Coupon Balance"
-                                        value={`₹${Number(profile?.total_coupon_benefits || 0).toLocaleString('en-IN')}`}
-                                        icon={Package}
-                                        color="#9a3412"
-                                        bgColor="rgba(255, 237, 213, 0.6)"
-                                        onPress={() => navigation.navigate('Wallet')}
-                                    />
-                                    <StatCard
-                                        title="Direct Income"
-                                        value={`₹${Number(profile?.direct_income || 0).toLocaleString('en-IN')}`}
-                                        icon={ArrowUpRight}
-                                        color="#1e40af"
-                                        bgColor="rgba(219, 234, 254, 0.6)"
-                                        onPress={() => navigation.navigate('Wallet')}
-                                    />
-                                    <StatCard
-                                        title="Level Income"
-                                        value={`₹${Number(profile?.level_income || 0).toLocaleString('en-IN')}`}
-                                        icon={ArrowUpRight}
-                                        color="#6b21a8"
-                                        bgColor="rgba(243, 232, 255, 0.6)"
-                                        onPress={() => navigation.navigate('Wallet')}
-                                    />
-                                    <StatCard
-                                        title="Total Earnings"
-                                        value={`₹${Number(profile?.total_earnings || 0).toLocaleString('en-IN')}`}
-                                        icon={CheckCircle}
-                                        color="#3730a3"
-                                        bgColor="rgba(238, 242, 255, 0.6)"
-                                        onPress={() => navigation.navigate('Wallet')}
-                                    />
+                                    
+                                    <View style={styles.cardRow}>
+                                        <StatCard
+                                            title="Coupon Balance"
+                                            value={`₹${Number(profile?.total_coupon_benefits || 0).toLocaleString('en-IN')}`}
+                                            icon={Package}
+                                            color="#9a3412"
+                                            bgColor="rgba(255, 237, 213, 0.6)"
+                                            onPress={() => navigation.navigate('Wallet')}
+                                            isDesktop={isDesktop}
+                                        />
+                                        <StatCard
+                                            title="Direct Income"
+                                            value={`₹${Number(profile?.direct_income || 0).toLocaleString('en-IN')}`}
+                                            icon={ArrowUpRight}
+                                            color="#1e40af"
+                                            bgColor="rgba(219, 234, 254, 0.6)"
+                                            onPress={() => navigation.navigate('Wallet')}
+                                            isDesktop={isDesktop}
+                                        />
+                                    </View>
+
+                                    <View style={styles.cardRow}>
+                                        <StatCard
+                                            title="Level Income"
+                                            value={`₹${Number(profile?.level_income || 0).toLocaleString('en-IN')}`}
+                                            icon={ArrowUpRight}
+                                            color="#6b21a8"
+                                            bgColor="rgba(243, 232, 255, 0.6)"
+                                            onPress={() => navigation.navigate('Wallet')}
+                                            isDesktop={isDesktop}
+                                        />
+                                        <StatCard
+                                            title="Total Earnings"
+                                            value={`₹${Number(profile?.total_earnings || 0).toLocaleString('en-IN')}`}
+                                            icon={CheckCircle}
+                                            color="#047857"
+                                            bgColor="rgba(209, 250, 229, 0.6)"
+                                            onPress={() => navigation.navigate('Wallet')}
+                                            isDesktop={isDesktop}
+                                        />
+                                    </View>
                                 </View>
                             </View>
                         </View>
@@ -353,11 +364,11 @@ const styles = StyleSheet.create({
         paddingBottom: 40,
     },
     logoSection: {
-        width: '25%',
+        width: '100%',
         alignSelf: 'center',
         paddingVertical: 0,
         paddingHorizontal: 0,
-        flexDirection: 'row',
+        flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center',
         marginBottom: 15,
@@ -369,9 +380,9 @@ const styles = StyleSheet.create({
     welcomeText: {
         fontSize: 26,
         fontWeight: '700',
-        color: '#1a4d1a',
+        color: '#8b2323',
+        textAlign: 'center',
         marginLeft: 0,
-        flex: 1,
     },
     section: {
         width: Platform.OS === 'web' ? '98%' : '100%',
@@ -545,18 +556,22 @@ const styles = StyleSheet.create({
         letterSpacing: 1,
     },
     statsGrid: {
+        width: '100%',
+    },
+    cardRow: {
         flexDirection: 'row',
-        flexWrap: 'wrap',
         justifyContent: 'space-between',
+        width: '100%',
+        gap: 10,
     },
     card: {
         backgroundColor: COLORS.glassBgDark, // Little transparent for sub-cards
-        width: '48%',
-        padding: 15,
+        padding: 12,
         borderRadius: 12,
-        marginBottom: 15,
+        marginBottom: 10,
         borderWidth: 1.5,
         borderColor: COLORS.glassBorder,
+        width: '100%',
         ...Platform.select({
             web: { backdropFilter: 'blur(12px)' }
         }),
@@ -566,8 +581,11 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.1,
         shadowRadius: 4,
     },
+    cardDesktop: {
+        padding: 15,
+        marginBottom: 15,
+    },
     fullWidthCard: {
-        width: '100%',
         flexDirection: 'row',
         alignItems: 'center',
     },

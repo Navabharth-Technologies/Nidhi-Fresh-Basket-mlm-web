@@ -898,8 +898,8 @@ const styles = StyleSheet.create({
     headerLogo: {
         width: 180,
         height: 170,
-        marginTop: -60,
-        marginBottom: 34,
+        marginTop: -35,
+        marginBottom: -14,
     },
     headerLogoDesktop: {
         width: 480,
@@ -956,7 +956,7 @@ const styles = StyleSheet.create({
         textShadowColor: 'rgba(0, 0, 0, 0.15)',
         textShadowOffset: { width: 0, height: 3 },
         textShadowRadius: 6,
-        marginTop: -80,
+        marginTop: -50,
     },
     heroSubtext: {
         fontSize: 18,
@@ -1061,8 +1061,9 @@ const styles = StyleSheet.create({
         borderColor: 'rgba(255, 255, 255, 0.5)',
         borderRadius: 12,
         marginBottom: 12,
-        height: 48,
-        paddingHorizontal: 15,
+        height: 52,
+        paddingLeft: 12,
+        paddingRight: 15, 
     },
     passwordContainerFocused: {
         borderColor: '#2e7d32',
@@ -1083,7 +1084,13 @@ const styles = StyleSheet.create({
         })
     },
     eyeIcon: {
-        padding: 5,
+        width: 40,
+        height: '100%',
+        justifyContent: 'center',
+        alignItems: 'center',
+        ...Platform.select({
+            web: { cursor: 'pointer' }
+        })
     },
     signInGradientButton: {
         borderRadius: 8,

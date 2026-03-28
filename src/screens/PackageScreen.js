@@ -16,7 +16,7 @@ const PackageCard = ({ item, onPurchase, loading }) => (
         <View style={styles.features}>
             <View style={styles.featureItem}>
                 <CheckCircle2 color={COLORS.success} size={18} />
-                <Text style={styles.featureText}>Monthly Coupon: ₹{item.coupon_amount}</Text>
+                <Text style={styles.featureText}>Coupon: ₹{item.coupon_amount}</Text>
             </View>
             <View style={styles.featureItem}>
                 <CheckCircle2 color={COLORS.success} size={18} />
@@ -63,7 +63,7 @@ const PackageScreen = ({ navigation }) => {
             // First check KYC status
             const kycRes = await apiClient.get('/kyc/user/kyc-status');
             const status = kycRes.data.status?.toLowerCase();
-            
+
             if (status !== 'approved') {
                 Alert.alert(
                     'KYC Required',
@@ -82,10 +82,10 @@ const PackageScreen = ({ navigation }) => {
                 amount: String(pkg.price)
             };
 
-            navigation.navigate('KYCVerification', { 
+            navigation.navigate('KYCVerification', {
                 packageName: kycPackage.name,
                 packageAmount: kycPackage.amount,
-                jumpToStep: 3 
+                jumpToStep: 3
             });
         } catch (e) {
             console.error('KYC check failed', e);

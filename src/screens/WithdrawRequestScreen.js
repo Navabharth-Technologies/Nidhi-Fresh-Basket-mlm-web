@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import {
     StyleSheet, Text, View, TextInput, TouchableOpacity,
-    ActivityIndicator, Alert, ScrollView, KeyboardAvoidingView, Platform
+    ActivityIndicator, Alert, ScrollView, KeyboardAvoidingView, Platform, useWindowDimensions
 } from 'react-native';
 import { COLORS, SPACING, SIZES } from '../theme/theme';
 import apiClient from '../api/client';
@@ -12,6 +12,8 @@ import MainHeader from '../components/MainHeader';
 import ScreenBackground from '../components/ScreenBackground';
 
 const WithdrawRequestScreen = ({ route }) => {
+    const { width } = useWindowDimensions();
+    const isDesktop = width >= 768;
     const { balance } = route.params || { balance: 0 };
     const navigation = useNavigation();
 
@@ -163,8 +165,8 @@ const WithdrawRequestScreen = ({ route }) => {
                     style={{ flex: 1 }}
                     behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
                 >
-                    <ScrollView style={{ flex: 1 }}>
-                        <View style={styles.header}>
+                    <ScrollView style={{ flex: 1 }} contentContainerStyle={isDesktop && styles.scrollContentDesktop}>
+                        <View style={[styles.header, isDesktop && styles.headerDesktop]}>
                             <Landmark color={COLORS.secondary} size={32} />
                             <Text style={styles.title}>Withdraw Request</Text>
                             {fetchingData && <ActivityIndicator size="small" color={COLORS.secondary} style={{ marginTop: 10 }} />}
@@ -174,7 +176,7 @@ const WithdrawRequestScreen = ({ route }) => {
                             </View>
                         </View>
 
-                <View style={styles.methodSelector}>
+                <View style={[styles.methodSelector, isDesktop && styles.methodSelectorDesktop]}>
                     <TouchableOpacity
                         style={[styles.methodBtn, form.transfer_method === 'bank' && styles.methodBtnActive]}
                         onPress={() => setForm({ ...form, transfer_method: 'bank' })}
@@ -192,7 +194,7 @@ const WithdrawRequestScreen = ({ route }) => {
                     </TouchableOpacity>
                 </View>
 
-                <View style={styles.form}>
+                <View style={[styles.form, isDesktop && styles.formDesktop]}>
                     <View style={styles.inputGroup}>
                         <Text style={styles.label}>Full Name (as in Bank)</Text>
                         <TextInput
@@ -300,9 +302,19 @@ const styles = StyleSheet.create({
         backgroundColor: COLORS.glassBg, 
         borderBottomWidth: 1, 
         borderBottomColor: COLORS.glassBorder,
-        ...Platform.select({
-            web: { backdropFilter: 'blur(12px)' }
-        })
+    },
+    headerDesktop: {
+        width: '100%',
+        maxWidth: 800,
+        alignSelf: 'center',
+        marginVertical: 20,
+        borderRadius: 20,
+        borderWidth: 1,
+        borderColor: COLORS.glassBorder,
+    },
+    scrollContentDesktop: {
+        alignItems: 'center',
+        paddingVertical: 20,
     },
     title: { fontSize: 24, fontWeight: 'bold', color: COLORS.text, marginTop: SPACING.m },
     balanceTag: { marginTop: SPACING.m, alignItems: 'center' },
@@ -322,7 +334,13 @@ const styles = StyleSheet.create({
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.08,
-        shadowRadius: 8
+        shadowRadius: 8,
+        width: '95%',
+        maxWidth: 800,
+        alignSelf: 'center',
+    },
+    formDesktop: {
+        padding: 40,
     },
     inputGroup: { marginBottom: SPACING.m },
     label: { color: COLORS.text, fontSize: 13, fontWeight: '600', marginBottom: 8 },
@@ -371,7 +389,15 @@ const styles = StyleSheet.create({
         borderBottomColor: COLORS.glassBorder,
         ...Platform.select({
             web: { backdropFilter: 'blur(8px)' }
-        })
+        }),
+        width: '95%',
+        maxWidth: 800,
+        alignSelf: 'center',
+        borderRadius: 12,
+        marginBottom: 20,
+    },
+    methodSelectorDesktop: {
+        paddingVertical: 15,
     },
     methodBtn: {
         flex: 1,

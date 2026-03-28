@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
-import { StyleSheet, Text, View, TextInput, TouchableOpacity, ScrollView, Alert, ActivityIndicator, Image, Platform } from 'react-native';
+import { StyleSheet, Text, View, TextInput, TouchableOpacity, ScrollView, Alert, ActivityIndicator, Image, Platform, useWindowDimensions } from 'react-native';
 import apiClient from '../api/client';
-import { Phone, ChevronLeft, Lock, KeyRound, CheckCircle } from 'lucide-react-native';
+import { Phone, ChevronLeft, Lock, KeyRound, CheckCircle, Eye, EyeOff } from 'lucide-react-native';
 import ScreenBackground from '../components/ScreenBackground';
 
 const ForgotPasswordScreen = ({ navigation }) => {
+    const { width } = useWindowDimensions();
+    const isDesktop = width >= 768;
     const [phone, setPhone] = useState('');
     const [otp, setOtp] = useState('');
     const [newPassword, setNewPassword] = useState('');
@@ -97,7 +99,7 @@ const ForgotPasswordScreen = ({ navigation }) => {
         <ScreenBackground>
             <ScrollView contentContainerStyle={styles.container}>
                 <TouchableOpacity
-                    style={[styles.backButton, resetLoading && { opacity: 0.5 }]}
+                    style={[styles.backButton, resetLoading && { opacity: 0.5 }, isDesktop && styles.backButtonDesktop]}
                     onPress={() => {
                         if (navigation.canGoBack()) {
                             navigation.goBack();
@@ -111,7 +113,7 @@ const ForgotPasswordScreen = ({ navigation }) => {
                     <Text style={styles.backText}>Back to Login</Text>
                 </TouchableOpacity>
 
-                <View style={styles.header}>
+                <View style={[styles.header, isDesktop && styles.headerDesktop]}>
                     <Image
                         source={require('../../assets/nidhi_logo.png')}
                         style={styles.logo}
@@ -121,7 +123,7 @@ const ForgotPasswordScreen = ({ navigation }) => {
                     <Text style={styles.subtitle}>Enter your 10-digit phone number to receive a 6-digit OTP for password reset.</Text>
                 </View>
 
-                <View style={styles.form}>
+                <View style={[styles.form, isDesktop && styles.formDesktop]}>
                     <View style={[styles.inputContainer, otpSent && styles.disabledInput]}>
                         <Phone color={otpSent ? "#999" : "#666"} size={20} style={styles.inputIcon} />
                         <TextInput
@@ -202,7 +204,7 @@ const ForgotPasswordScreen = ({ navigation }) => {
                                     editable={!resetLoading}
                                 />
                                 <TouchableOpacity onPress={() => setShowPassword(!showPassword)} style={styles.eyeIconBtn}>
-                                    {showPassword ? <Lock size={18} color="#1a531b" /> : <Lock size={18} color="#999" opacity={0.5} />}
+                                    {showPassword ? <Eye size={18} color="#1a531b" /> : <EyeOff size={18} color="#999" opacity={0.5} />}
                                 </TouchableOpacity>
                             </View>
                             {newPassword.length > 0 && newPassword.length < 6 && (
@@ -222,7 +224,7 @@ const ForgotPasswordScreen = ({ navigation }) => {
                                     editable={!resetLoading}
                                 />
                                 <TouchableOpacity onPress={() => setShowConfirmPassword(!showConfirmPassword)} style={styles.eyeIconBtn}>
-                                    {showConfirmPassword ? <Lock size={18} color="#1a531b" /> : <Lock size={18} color="#999" opacity={0.5} />}
+                                    {showConfirmPassword ? <Eye size={18} color="#1a531b" /> : <EyeOff size={18} color="#999" opacity={0.5} />}
                                 </TouchableOpacity>
                             </View>
                             {confirmPassword.length > 0 && newPassword !== confirmPassword && (
@@ -264,6 +266,11 @@ const styles = StyleSheet.create({
         marginTop: 40,
         marginBottom: 20,
     },
+    backButtonDesktop: {
+        width: '100%',
+        maxWidth: 600,
+        alignSelf: 'center',
+    },
     backText: {
         fontSize: 16,
         color: 'black',
@@ -273,6 +280,11 @@ const styles = StyleSheet.create({
     header: {
         alignItems: 'center',
         marginBottom: 40,
+    },
+    headerDesktop: {
+        width: '100%',
+        maxWidth: 600,
+        alignSelf: 'center',
     },
     logo: {
         width: 150,
@@ -293,6 +305,10 @@ const styles = StyleSheet.create({
     },
     form: {
         width: '100%',
+    },
+    formDesktop: {
+        maxWidth: 600,
+        alignSelf: 'center',
     },
     inputContainer: {
         flexDirection: 'row',
@@ -394,8 +410,13 @@ const styles = StyleSheet.create({
         textDecorationLine: 'underline',
     },
     eyeIconBtn: {
-        padding: 5,
-        marginLeft: 5,
+        width: 44,
+        height: 44,
+        justifyContent: 'center',
+        alignItems: 'center',
+        ...Platform.select({
+            web: { cursor: 'pointer' }
+        })
     },
     validationText: {
         color: '#dc2626',
