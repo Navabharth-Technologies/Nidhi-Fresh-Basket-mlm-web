@@ -471,7 +471,7 @@ const AnimatedCard = ({ children, style, loading }) => {
             >
                 {/* Apply inverse translation to the children to keep them 'still' on screen while BG moves */}
                 {/* Actually, if the user doesn't want the text to move, we just keep the background moving and children static */}
-                <View style={{ flex: 1, padding: 20 }}>
+                <View style={{ width: '100%', padding: 20 }}>
                     {children}
                 </View>
             </Pressable>
@@ -1027,7 +1027,9 @@ const styles = StyleSheet.create({
         borderRadius: 12,
         marginBottom: 8,
         height: 48,
-        paddingHorizontal: 15,
+        paddingHorizontal: 12,
+        width: '100%',
+        overflow: 'hidden',
     },
     inputWithIcon: {
         flex: 1,
@@ -1063,7 +1065,9 @@ const styles = StyleSheet.create({
         marginBottom: 12,
         height: 52,
         paddingLeft: 12,
-        paddingRight: 15, 
+        paddingRight: 4, 
+        width: '100%',
+        overflow: 'hidden',
     },
     passwordContainerFocused: {
         borderColor: '#2e7d32',
@@ -1079,15 +1083,18 @@ const styles = StyleSheet.create({
         fontSize: 16,
         color: '#333',
         height: '100%',
+        minWidth: 0,
+        flexShrink: 1,
         ...Platform.select({
             web: { outlineStyle: 'none' }
         })
     },
     eyeIcon: {
-        width: 40,
+        width: 44,
         height: '100%',
         justifyContent: 'center',
         alignItems: 'center',
+        flexShrink: 0,
         ...Platform.select({
             web: { cursor: 'pointer' }
         })

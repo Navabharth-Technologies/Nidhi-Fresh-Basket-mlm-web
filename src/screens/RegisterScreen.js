@@ -443,14 +443,20 @@ const styles = StyleSheet.create({
         marginBottom: 16,
         borderWidth: 1.5,
         borderColor: '#dee2e6',
-        paddingRight: 12,
+        paddingRight: 4,
+        width: '100%',
+        overflow: 'hidden',
     },
     passwordInput: {
         flex: 1,
         color: '#111',
         padding: 14,
         fontSize: 16,
-        outlineStyle: 'none',
+        minWidth: 0,
+        flexShrink: 1,
+        ...Platform.select({
+            web: { outlineStyle: 'none' }
+        })
     },
     passwordContainerFocused: {
         borderColor: COLORS.secondary,
@@ -461,6 +467,7 @@ const styles = StyleSheet.create({
         height: 44,
         justifyContent: 'center',
         alignItems: 'center',
+        flexShrink: 0,
         ...Platform.select({
             web: { cursor: 'pointer' }
         })
