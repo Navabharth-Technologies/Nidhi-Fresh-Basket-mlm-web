@@ -166,9 +166,6 @@ const DashboardScreen = ({ navigation }) => {
                     <View style={styles.section}>
                         <View style={styles.sectionHeader}>
                             <Text style={styles.sectionTitle}>My Package</Text>
-                            <TouchableOpacity onPress={onRefresh} style={{ padding: 4 }}>
-                                <RefreshCw size={18} color={COLORS.secondary} />
-                            </TouchableOpacity>
                         </View>
                         <View style={styles.sectionBody}>
                             {purchasedPackages.length > 0 ? (
@@ -426,9 +423,6 @@ const styles = StyleSheet.create({
         borderTopRightRadius: 12,
         borderWidth: 1.5,
         borderColor: COLORS.glassBorder,
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
     },
     sectionTitle: {
         fontSize: 18,
