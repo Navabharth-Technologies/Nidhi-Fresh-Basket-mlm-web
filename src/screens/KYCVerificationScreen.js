@@ -778,15 +778,18 @@ const KYCVerificationScreen = ({ navigation, route }) => {
         <Modal
             visible={pickerModal.visible}
             transparent={true}
-            animationType="fade"
+            animationType={isDesktop ? "fade" : "slide"}
             onRequestClose={() => setPickerModal({ visible: false, field: null })}
         >
             <TouchableOpacity 
-                style={[styles.modalOverlay, isDesktop && { justifyContent: 'center' }]} 
+                style={[styles.modalOverlay, isDesktop && { justifyContent: 'center', padding: 20 }]} 
                 activeOpacity={1} 
                 onPress={() => setPickerModal({ visible: false, field: null })}
             >
-                <View style={[styles.pickerContainer, isDesktop && { borderRadius: 24, marginHorizontal: 20, paddingBottom: 24 }]}>
+                <View style={[
+                    styles.pickerContainer,
+                    isDesktop && { borderRadius: 24, padding: 32 }
+                ]}>
                     <Text style={styles.pickerTitle}>Upload Photo</Text>
                     <Text style={styles.pickerSub}>Choose a source for your document</Text>
                     
@@ -961,13 +964,18 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     pickerContainer: {
-        backgroundColor: '#fff',
+        backgroundColor: 'rgba(255, 255, 255, 0.95)',
         width: '100%',
         maxWidth: 500,
         borderTopLeftRadius: 24,
         borderTopRightRadius: 24,
         padding: 24,
         paddingBottom: Platform.OS === 'ios' ? 40 : 24,
+        borderWidth: 1,
+        borderColor: 'rgba(255, 255, 255, 0.3)',
+        ...Platform.select({
+            web: { backdropFilter: 'blur(16px)' }
+        })
     },
     pickerTitle: {
         fontSize: 20,
