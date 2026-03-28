@@ -96,13 +96,8 @@ const DashboardScreen = ({ navigation }) => {
 
     const onRefresh = async () => {
         setRefreshing(true);
-        try {
-            await fetchData();
-        } catch (e) {
-            console.error('Refresh failed:', e);
-        } finally {
-            setRefreshing(false);
-        }
+        await fetchData();
+        setRefreshing(false);
     };
 
     useEffect(() => {
@@ -144,20 +139,17 @@ const DashboardScreen = ({ navigation }) => {
 
                 <ScrollView
                     style={{ flex: 1 }}
-                    contentContainerStyle={styles.content}
+                    contentContainerStyle={[styles.content, { flexGrow: 1 }]}
                     refreshControl={
                         <RefreshControl 
                             refreshing={refreshing} 
                             onRefresh={onRefresh} 
                             tintColor={COLORS.secondary} 
                             colors={[COLORS.secondary]} 
-                            progressBackgroundColor="#ffffff"
                         />
                     }
                     alwaysBounceVertical={true}
-                    scrollEventThrottle={16}
                 >
-                    <View style={{ minHeight: '101%', display: 'flex' }}>
                     {/* Welcoming Header Section */}
                     <View style={[styles.logoSection, !isDesktop && { marginBottom: 10 }]}>
                         <Image
@@ -174,6 +166,9 @@ const DashboardScreen = ({ navigation }) => {
                     <View style={styles.section}>
                         <View style={styles.sectionHeader}>
                             <Text style={styles.sectionTitle}>My Package</Text>
+                            <TouchableOpacity onPress={onRefresh} style={{ padding: 4 }}>
+                                <RefreshCw size={18} color={COLORS.secondary} />
+                            </TouchableOpacity>
                         </View>
                         <View style={styles.sectionBody}>
                             {purchasedPackages.length > 0 ? (
@@ -350,7 +345,6 @@ const DashboardScreen = ({ navigation }) => {
                             </View>
                         </View>
                     )}
-                    </View>
                 </ScrollView>
             </View>
         </ScreenBackground>
@@ -432,6 +426,9 @@ const styles = StyleSheet.create({
         borderTopRightRadius: 12,
         borderWidth: 1.5,
         borderColor: COLORS.glassBorder,
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
     },
     sectionTitle: {
         fontSize: 18,
