@@ -34,9 +34,8 @@ const ResetPasswordScreen = ({ navigation, route }) => {
                 otp,
                 newPassword
             });
-            Alert.alert('Success', res.data.msg, [
-                { text: 'Login', onPress: () => navigation.navigate('Login') }
-            ]);
+            Alert.alert('Success', res.data.msg);
+            navigation.navigate('Login');
         } catch (error) {
             const errorMsg = error.response?.data?.msg || 'Something went wrong';
             Alert.alert('Failed', errorMsg);

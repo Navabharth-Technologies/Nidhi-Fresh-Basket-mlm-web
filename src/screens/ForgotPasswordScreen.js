@@ -84,9 +84,8 @@ const ForgotPasswordScreen = ({ navigation }) => {
                 otp,
                 newPassword
             });
-            Alert.alert('Success', 'Password reset successful! Please login with your new password.', [
-                { text: 'OK', onPress: () => navigation.navigate('Login') }
-            ]);
+            Alert.alert('Success', 'Password reset successful! Please login with your new password.');
+            navigation.navigate('Login');
         } catch (error) {
             const errorMsg = error.response?.data?.msg || 'Something went wrong';
             Alert.alert('Failed', errorMsg);
@@ -243,9 +242,7 @@ const ForgotPasswordScreen = ({ navigation }) => {
                                 )}
                             </TouchableOpacity>
 
-                            <TouchableOpacity onPress={() => setOtpSent(false)} style={styles.resendLink}>
-                                <Text style={styles.resendText}>Change Number?</Text>
-                            </TouchableOpacity>
+
                         </View>
                     )}
                 </View>
@@ -395,15 +392,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         marginTop: 10,
     },
-    resendLink: {
-        marginTop: 15,
-        alignItems: 'center',
-    },
-    resendText: {
-        color: '#666',
-        fontSize: 14,
-        textDecorationLine: 'underline',
-    },
+
     eyeIconBtn: {
         width: 44,
         height: 44,
