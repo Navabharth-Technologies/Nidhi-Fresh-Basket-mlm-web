@@ -213,7 +213,7 @@ const WithdrawRequestScreen = ({ route }) => {
                             style={styles.input}
                             placeholder="Your Name"
                             value={form.name}
-                            onChangeText={(t) => setForm({ ...form, name: t })}
+                            onChangeText={(t) => setForm({ ...form, name: t.replace(/[^a-zA-Z\s]/g, '') })}
                         />
                     </View>
 
@@ -277,7 +277,7 @@ const WithdrawRequestScreen = ({ route }) => {
                                 style={styles.input}
                                 placeholder="yourname@upi"
                                 value={form.upi_id}
-                                onChangeText={(v) => setForm({ ...form, upi_id: v.toLowerCase().replace(/\s/g, '') })}
+                                onChangeText={(v) => setForm({ ...form, upi_id: v.toLowerCase().replace(/[^a-z0-9@.\-_]/g, '') })}
                             />
                         </View>
                     )}

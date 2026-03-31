@@ -234,7 +234,7 @@ const KYCUploadScreen = ({ navigation }) => {
                     placeholder="ABCDE1234F"
                     placeholderTextColor="#999"
                     value={panNum}
-                    onChangeText={(v) => setPanNum(v.toUpperCase())}
+                    onChangeText={(v) => setPanNum(v.toUpperCase().replace(/[^A-Z0-9]/g, ''))}
                     autoCapitalize="characters"
                     maxLength={10}
                 />

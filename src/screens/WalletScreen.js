@@ -73,16 +73,16 @@ const TransactionItem = ({ item }) => {
                         {isWithdraw && (
                             <View style={[styles.miniBadge,
                             isApproved ? styles.miniApproved :
-                                isRejected ? styles.miniRejected : 
-                                item.status === 'processing' ? styles.miniProcessing :
-                                styles.miniPending
+                                isRejected ? styles.miniRejected :
+                                    item.status === 'processing' ? styles.miniProcessing :
+                                        styles.miniPending
                             ]}>
                                 <Text style={styles.miniBadgeText}>{item.status.toUpperCase()}</Text>
                             </View>
                         )}
                     </View>
                 </View>
-                
+
                 <View style={styles.txSecondaryInfo}>
                     <Text style={styles.txDate} numberOfLines={1}>
                         {new Date(item.created_at).toLocaleDateString()} • {item.description || (isWithdraw ? `Request for ₹${item.amount}` : '')}
@@ -195,9 +195,9 @@ const WalletScreen = () => {
                                 {/* Coupon Wallet Card */}
                                 <AnimatedCard
                                     style={StyleSheet.flatten([
-                                        styles.walletCard, 
-                                        isDesktop && styles.walletCardDesktop, 
-                                        { 
+                                        styles.walletCard,
+                                        isDesktop && styles.walletCardDesktop,
+                                        {
                                             backgroundColor: activeTab === 'coupon' ? 'rgba(255, 237, 213, 0.6)' : 'rgba(255, 237, 213, 0.3)',
                                             borderColor: activeTab === 'coupon' ? 'rgba(154, 52, 18, 0.5)' : 'rgba(154, 52, 18, 0.15)',
                                             borderStyle: 'solid',
@@ -214,13 +214,13 @@ const WalletScreen = () => {
                                     <Text style={[styles.cardBalance, { color: '#9a3412' }]}>₹{balances.coupon_balance}</Text>
                                     <Text style={styles.cardInfo}>Non-withdrawable</Text>
                                 </AnimatedCard>
-            
+
                                 {/* Commission Wallet Card */}
                                 <AnimatedCard
                                     style={StyleSheet.flatten([
-                                        styles.walletCard, 
+                                        styles.walletCard,
                                         isDesktop && styles.walletCardDesktop,
-                                        { 
+                                        {
                                             backgroundColor: activeTab === 'commission' ? 'rgba(220, 252, 231, 0.6)' : 'rgba(220, 252, 231, 0.3)',
                                             borderColor: activeTab === 'commission' ? 'rgba(22, 101, 52, 0.5)' : 'rgba(22, 101, 52, 0.15)',
                                             borderStyle: 'solid',
@@ -242,7 +242,7 @@ const WalletScreen = () => {
                             </View>
                         </View>
                     </View>
-    
+
                     <View style={[styles.section, isDesktop && styles.sectionDesktop]}>
                         <View style={styles.sectionHeader}>
                             <Text style={styles.sectionTitle}>

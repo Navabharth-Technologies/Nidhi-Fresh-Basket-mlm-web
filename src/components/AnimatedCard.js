@@ -8,7 +8,7 @@ const AnimatedCard = ({ children, style, onPress, hoverStyle, disableHover = fal
     const animateScale = (toValue) => {
         Animated.spring(scale, {
             toValue,
-            useNativeDriver: true,
+            useNativeDriver: Platform.OS !== 'web',
             friction: 7,
             tension: 60
         }).start();

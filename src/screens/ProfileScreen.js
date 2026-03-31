@@ -423,7 +423,7 @@ const ProfileScreen = ({ navigation }) => {
                                         placeholder="Password"
                                         secureTextEntry
                                         value={passwordModal.password}
-                                        onChangeText={(t) => setPasswordModal({ ...passwordModal, password: t })}
+                                        onChangeText={(t) => setPasswordModal({ ...passwordModal, password: t.replace(/\s/g, '') })}
                                         autoFocus
                                     />
 

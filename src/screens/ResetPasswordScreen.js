@@ -78,7 +78,7 @@ const ResetPasswordScreen = ({ navigation, route }) => {
                             style={styles.input}
                             placeholder="6-Digit OTP"
                             value={otp}
-                            onChangeText={setOtp}
+                            onChangeText={(v) => setOtp(v.replace(/[^0-9]/g, ''))}
                             keyboardType="number-pad"
                             maxLength={6}
                             onFocus={() => setFocusedField('otp')}
@@ -92,7 +92,7 @@ const ResetPasswordScreen = ({ navigation, route }) => {
                             style={styles.input}
                             placeholder="New Password"
                             value={newPassword}
-                            onChangeText={setNewPassword}
+                            onChangeText={(v) => setNewPassword(v.replace(/\s/g, ''))}
                             secureTextEntry={!showPassword}
                             contextMenuHidden={!showPassword}
                             selectTextOnFocus={showPassword}
@@ -110,7 +110,7 @@ const ResetPasswordScreen = ({ navigation, route }) => {
                             style={styles.input}
                             placeholder="Confirm New Password"
                             value={confirmPassword}
-                            onChangeText={setConfirmPassword}
+                            onChangeText={(v) => setConfirmPassword(v.replace(/\s/g, ''))}
                             secureTextEntry={!showConfirmPassword}
                             contextMenuHidden={!showConfirmPassword}
                             selectTextOnFocus={showConfirmPassword}

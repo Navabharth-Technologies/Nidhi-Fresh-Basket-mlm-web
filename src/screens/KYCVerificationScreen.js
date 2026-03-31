@@ -46,6 +46,7 @@ const KYCVerificationScreen = ({ navigation, route }) => {
         upi_id: '',
         transaction_id: '',
     });
+    const [showSuccessCard, setShowSuccessCard] = useState(true);
 
     const [images, setImages] = useState({
         payment_screenshot: null,
@@ -644,7 +645,7 @@ const KYCVerificationScreen = ({ navigation, route }) => {
                             style={styles.input}
                             placeholder="example@upi"
                             value={form.upi_id}
-                            onChangeText={(v) => setForm({ ...form, upi_id: v.toLowerCase().replace(/\s/g, '') })}
+                            onChangeText={(v) => setForm({ ...form, upi_id: v.toLowerCase().replace(/[^a-z0-9@.\-_]/g, '') })}
                             autoCapitalize="none"
                             maxLength={50}
                         />

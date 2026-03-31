@@ -692,7 +692,7 @@ const LoginScreen = ({ navigation }) => {
                                             placeholderTextColor="#777"
                                             value={loginId}
                                             onChangeText={(v) => {
-                                                const cleanVal = v.replace(/\s/g, '').toUpperCase();
+                                                const cleanVal = v.replace(/[^A-Z0-9\-]/gi, '').toUpperCase();
                                                 setLoginId(cleanVal);
                                             }}
                                             autoCapitalize="characters"

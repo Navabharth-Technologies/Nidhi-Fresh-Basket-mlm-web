@@ -25,14 +25,18 @@ const styles = StyleSheet.create({
     background: {
         flex: 1,
         width: '100%',
-        height: '100%',
+        minHeight: Platform.OS === 'web' ? '100vh' : '100%',
+        ...Platform.select({
+            web: { height: 'auto' }
+        })
     },
     overlay: {
         flex: 1,
-        backgroundColor: 'rgba(255, 255, 255, 0.5)', // Decreased transparency for a more vivid image
+        backgroundColor: 'rgba(255, 255, 255, 0.5)', 
+        minHeight: Platform.OS === 'web' ? '100vh' : '100%',
     },
     adminOverlay: {
-        backgroundColor: 'rgba(255, 255, 255, 0.5)', // Slightly more visible for admin but keeping it clean
+        backgroundColor: 'rgba(255, 255, 255, 0.5)', 
     }
 });
 

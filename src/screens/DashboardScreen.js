@@ -101,7 +101,7 @@ const DashboardScreen = ({ navigation }) => {
     };
 
     useEffect(() => {
-        fetchData();
+        // The focus listener will trigger fetchData on initial load as well
         const unsubscribe = navigation.addListener('focus', () => {
             fetchData();
         });
@@ -158,7 +158,7 @@ const DashboardScreen = ({ navigation }) => {
                             resizeMode="contain"
                         />
                         <Text style={[styles.welcomeText, !isDesktop && { fontSize: 22 }]}>
-                            Welcome back, {profile?.full_name?.split(' ')[0] || 'Member'}!
+                            Welcome back, {profile?.full_name?.split(' ')[0] || user?.email?.split('@')[0] || 'Member'}!
                         </Text>
                     </View>
 
@@ -232,7 +232,7 @@ const DashboardScreen = ({ navigation }) => {
                         </View>
                         <View style={styles.sectionBody}>
                             {/* KYC Row - Always show identity status */}
-                            <View style={[styles.kycRow, { marginBottom: (kycDetails.status?.toLowerCase() === 'pending' && purchasedPackages.length > 0) ? 20 : 0 }]}>
+                            <View style={[styles.kycRow]}>
                                 <View style={styles.kycNavHeader}>
                                     <View style={[styles.kycStatusIcon, { backgroundColor: (kycDetails.status?.toLowerCase() === 'approved' || purchasedPackages.length > 0) ? '#D1FAE5' : kycDetails.status?.toLowerCase() === 'pending' ? '#FEF3C7' : '#FEE2E2' }]}>
                                         {(kycDetails.status?.toLowerCase() === 'approved' || purchasedPackages.length > 0) ? <CheckCircle color="#059669" size={24} /> :
@@ -241,7 +241,7 @@ const DashboardScreen = ({ navigation }) => {
                                     <View style={{ flex: 1 }}>
                                         <Text style={styles.kycNavTitle}>KYC Verification</Text>
                                         <Text style={[styles.kycStatusText, { color: (kycDetails.status?.toLowerCase() === 'approved' || purchasedPackages.length > 0) ? '#059669' : kycDetails.status?.toLowerCase() === 'pending' ? '#D97706' : '#DC2626' }]}>
-                                            Status: {(kycDetails.status?.toLowerCase() === 'approved' || purchasedPackages.length > 0) ? 'Approved' : kycDetails.status}
+                                            Status: {(kycDetails.status?.toLowerCase() === 'approved' || purchasedPackages.length > 0) ? 'Active Member' : kycDetails.status || 'Not Verified'}
                                         </Text>
                                     </View>
                                 </View>
@@ -249,7 +249,7 @@ const DashboardScreen = ({ navigation }) => {
 
                             {/* Repurchase Status Row - Only show if it's a repurchase and pending */}
                             {kycDetails.status?.toLowerCase() === 'pending' && purchasedPackages.length > 0 && (
-                                <View style={[styles.kycRow, { borderTopWidth: 1, borderTopColor: '#f1f5f9', paddingTop: 15 }]}>
+                                <View style={[styles.kycRow, { borderTopWidth: 1, borderTopColor: '#f1f5f9', paddingTop: 15, marginTop: 15 }]}>
                                     <View style={styles.kycNavHeader}>
                                         <View style={[styles.kycStatusIcon, { backgroundColor: '#FEF3C7' }]}>
                                             <RotateCcw color="#D97706" size={24} />
@@ -271,7 +271,7 @@ const DashboardScreen = ({ navigation }) => {
                             >
                                 <View style={{ paddingVertical: 14, width: '100%', alignItems: 'center' }}>
                                     <Text style={styles.verifyBtnText}>
-                                        {(kycDetails.status?.toLowerCase() === 'approved' || purchasedPackages.length > 0) ? 'View Identity Info' : 'Verify Now'}
+                                        {(kycDetails.status?.toLowerCase() === 'approved' || purchasedPackages.length > 0) ? 'View My Info' : 'Verify Now'}
                                     </Text>
                                 </View>
                             </AnimatedCard>
@@ -417,17 +417,21 @@ const styles = StyleSheet.create({
     },
     sectionHeader: {
         backgroundColor: COLORS.glassBgDark,
-        paddingVertical: 10,
+        paddingVertical: 12,
         paddingHorizontal: 15,
         borderTopLeftRadius: 12,
         borderTopRightRadius: 12,
         borderWidth: 1.5,
         borderColor: COLORS.glassBorder,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'flex-start',
     },
     sectionTitle: {
         fontSize: 18,
         fontWeight: 'bold',
         color: '#1e293b',
+        textAlign: 'left',
     },
     sectionBody: {
         backgroundColor: COLORS.glassBg,
