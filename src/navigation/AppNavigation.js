@@ -112,7 +112,7 @@ const AppNavigation = () => {
     return (
         <NavigationContainer 
             theme={MyTheme} 
-            linking={Platform.OS === 'web' ? { ...linking, prefixes: ['https://nidhifreshbasket.in/#', 'nfb://'] } : linking}
+            linking={Platform.OS === 'web' ? { ...linking, prefixes: [] } : linking}
         >
             <Stack.Navigator screenOptions={{ headerShown: false, contentStyle: { backgroundColor: 'transparent' } }}>
                 {!user ? (

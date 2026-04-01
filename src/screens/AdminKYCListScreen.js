@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { StyleSheet, Text, View, FlatList, TouchableOpacity, RefreshControl, ActivityIndicator, Image, Modal, TextInput, Alert, Platform, ScrollView } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as FileSystem from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
 import { useFocusEffect } from '@react-navigation/native';
@@ -18,6 +19,20 @@ const AdminKYCListScreen = ({ navigation }) => {
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
     const activeSectionRef = useRef(activeSection);
+
+    useEffect(() => {
+        const loadInitialSection = async () => {
+            try {
+                const savedSection = await AsyncStorage.getItem('admin_active_section');
+                if (savedSection && ['purchase', 'repurchase', 'withdraw'].includes(savedSection)) {
+                    setActiveSection(savedSection);
+                }
+            } catch (err) {
+                console.error('Failed to load saved section', err);
+            }
+        };
+        loadInitialSection();
+    }, []);
 
     useEffect(() => {
         activeSectionRef.current = activeSection;
@@ -147,11 +162,16 @@ const AdminKYCListScreen = ({ navigation }) => {
         fetchAllData();
     };
 
-    const handleSectionChange = (id) => {
+    const handleSectionChange = async (id) => {
         if (id === activeSection) return;
         setRequests([]);
         setLoading(true);
         setActiveSection(id);
+        try {
+            await AsyncStorage.setItem('admin_active_section', id);
+        } catch (err) {
+            console.error('Failed to save section', err);
+        }
     };
 
     const handleWithdrawUpdateStatus = (withdrawId, status) => {
@@ -392,7 +412,7 @@ const AdminKYCListScreen = ({ navigation }) => {
 
                 <View style={styles.walletStats}>
                     <View style={styles.walletStatItem}>
-                        <Text style={styles.walletLabel}>Comm.</Text>
+                        <Text style={styles.walletLabel}>Commission</Text>
                         <Text style={[styles.walletValue, { color: '#047857' }]}>₹{item.commission_balance}</Text>
                     </View>
                     <View style={styles.walletStatItem}>
