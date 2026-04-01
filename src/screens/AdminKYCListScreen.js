@@ -46,17 +46,17 @@ const AdminKYCListScreen = ({ navigation }) => {
         return [year, month.padStart(2, '0'), day.padStart(2, '0')].join('-');
     };
 
-    const [filterType, setFilterType] = useState('today');
-    const [startDate, setStartDate] = useState(formatDate(new Date()));
-    const [endDate, setEndDate] = useState(formatDate(new Date()));
+    const [filterType, setFilterType] = useState('year');
+    const [startDate, setStartDate] = useState(formatDate(new Date(new Date().getFullYear(), 0, 1)));
+    const [endDate, setEndDate] = useState(formatDate(new Date(new Date().getFullYear(), 11, 31)));
     const [activePicker, setActivePicker] = useState('start'); // 'start' or 'end'
     const [showCalendar, setShowCalendar] = useState(false);
     const [calendarViewDate, setCalendarViewDate] = useState(new Date()); // For month/year navigation
 
     // Temp states for modal
-    const [tempFilterType, setTempFilterType] = useState('today');
-    const [tempStartDate, setTempStartDate] = useState(formatDate(new Date()));
-    const [tempEndDate, setTempEndDate] = useState(formatDate(new Date()));
+    const [tempFilterType, setTempFilterType] = useState('year');
+    const [tempStartDate, setTempStartDate] = useState(formatDate(new Date(new Date().getFullYear(), 0, 1)));
+    const [tempEndDate, setTempEndDate] = useState(formatDate(new Date(new Date().getFullYear(), 11, 31)));
 
     // Withdrawal specific state
     const [processingId, setProcessingId] = useState(null);
