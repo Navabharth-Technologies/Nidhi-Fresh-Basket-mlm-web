@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, Text, View, TouchableOpacity, ScrollView, Alert, Platform, Modal, TextInput, ActivityIndicator, useWindowDimensions, Image, LayoutAnimation, UIManager, RefreshControl } from 'react-native';
+import { StyleSheet, Text, View, TouchableOpacity, ScrollView, Alert, Platform, Modal, TextInput, ActivityIndicator, useWindowDimensions, Image, LayoutAnimation, UIManager, RefreshControl, Animated } from 'react-native';
 import { COLORS, SPACING, SIZES } from '../theme/theme';
 import { useAuth } from '../store/AuthContext';
 import apiClient from '../api/client';
@@ -13,7 +13,6 @@ const ProfileItem = ({ label, value, icon: Icon, isSensitive, onReveal, onHide, 
     const maskValue = (val) => {
         if (!val) return 'N/A';
         if (revealed || !isSensitive) return val;
-        // Simple masking: show last 4 digits
         return val.length > 4 ? `XXXX-XXXX-${val.slice(-4)}` : 'XXXX-XXXX';
     };
 
@@ -23,23 +22,29 @@ const ProfileItem = ({ label, value, icon: Icon, isSensitive, onReveal, onHide, 
             hoverStyle={{ backgroundColor: 'rgba(46, 125, 50, 0.08)', borderRadius: 12 }}
             onPress={isSensitive ? (revealed ? onHide : onReveal) : null}
         >
-            <View style={{ flexDirection: 'row', alignItems: 'center', width: '100%', paddingVertical: 8, paddingHorizontal: 10 }}>
-                <View style={[styles.iconBox, iconColor && { backgroundColor: iconColor + '10' }]}>
-                    <Icon color={iconColor || COLORS.textSecondary} size={20} />
+            {({ isHovered }) => (
+                <View style={{ flexDirection: 'row', alignItems: 'center', width: '100%', paddingVertical: 8, paddingHorizontal: 10 }}>
+                    <View style={[
+                        styles.iconBox, 
+                        iconColor && { backgroundColor: iconColor + '10' },
+                        isHovered && Platform.OS === 'web' && { transform: [{ scale: 1.15 }], backgroundColor: iconColor ? iconColor + '20' : COLORS.background }
+                    ]}>
+                        <Icon color={iconColor || COLORS.textSecondary} size={20} />
+                    </View>
+                    <View style={styles.info}>
+                        <Text style={styles.label}>{label}</Text>
+                        <Text style={styles.value}>{maskValue(value)}</Text>
+                    </View>
+                    {isSensitive && (
+                        <TouchableOpacity 
+                            style={{ marginLeft: 'auto', padding: 5 }}
+                            onPress={revealed ? onHide : onReveal}
+                        >
+                            {revealed ? <Eye color={COLORS.success} size={18} /> : <EyeOff color={COLORS.textSecondary} size={18} />}
+                        </TouchableOpacity>
+                    )}
                 </View>
-                <View style={styles.info}>
-                    <Text style={styles.label}>{label}</Text>
-                    <Text style={styles.value}>{maskValue(value)}</Text>
-                </View>
-                {isSensitive && (
-                    <TouchableOpacity 
-                        style={{ marginLeft: 'auto', padding: 5 }}
-                        onPress={revealed ? onHide : onReveal}
-                    >
-                        {revealed ? <Eye color={COLORS.success} size={18} /> : <EyeOff color={COLORS.textSecondary} size={18} />}
-                    </TouchableOpacity>
-                )}
-            </View>
+            )}
         </AnimatedCard>
     );
 };
@@ -51,22 +56,28 @@ const HoverableKYCRow = ({ label, value, icon: Icon, iconColor, isSensitive, rev
             hoverStyle={{ backgroundColor: 'rgba(46, 125, 50, 0.15)', borderRadius: 12 }}
             onPress={onToggle}
         >
-            <View style={{ flexDirection: 'row', alignItems: 'center', width: '100%', paddingVertical: 8, paddingHorizontal: 10 }}>
-                <View style={styles.kycLeft}>
-                    <View style={[styles.iconBox, iconColor && { backgroundColor: iconColor + '10' }]}>
-                        <Icon color={iconColor || COLORS.textSecondary} size={20} />
+            {({ isHovered }) => (
+                <View style={{ flexDirection: 'row', alignItems: 'center', width: '100%', paddingVertical: 8, paddingHorizontal: 10 }}>
+                    <View style={styles.kycLeft}>
+                        <View style={[
+                            styles.iconBox, 
+                            iconColor && { backgroundColor: iconColor + '10' },
+                            isHovered && Platform.OS === 'web' && { transform: [{ scale: 1.2 }], backgroundColor: iconColor ? iconColor + '20' : COLORS.background }
+                        ]}>
+                            <Icon color={iconColor || COLORS.textSecondary} size={20} />
+                        </View>
+                        <View style={styles.info}>
+                            <Text style={styles.label}>{label}</Text>
+                            <Text style={styles.value}>{value}</Text>
+                        </View>
                     </View>
-                    <View style={styles.info}>
-                        <Text style={styles.label}>{label}</Text>
-                        <Text style={styles.value}>{value}</Text>
-                    </View>
+                    {isSensitive && (
+                        <View style={{ marginLeft: 'auto', padding: 5 }}>
+                            {revealed ? <Eye color={COLORS.success} size={18} /> : <EyeOff color={COLORS.textSecondary} size={18} />}
+                        </View>
+                    )}
                 </View>
-                {isSensitive && (
-                    <View style={{ marginLeft: 'auto', padding: 5 }}>
-                        {revealed ? <Eye color={COLORS.success} size={18} /> : <EyeOff color={COLORS.textSecondary} size={18} />}
-                    </View>
-                )}
-            </View>
+            )}
         </AnimatedCard>
     );
 };
@@ -153,7 +164,6 @@ const ProfileScreen = ({ navigation }) => {
         input.type = 'file';
         input.accept = 'image/*';
         if (useCamera) {
-            // This signals mobile browsers to open camera instead of files
             input.capture = 'user';
         }
         input.onchange = (e) => {
@@ -189,10 +199,8 @@ const ProfileScreen = ({ navigation }) => {
             const formData = new FormData();
 
             if (Platform.OS === 'web' && webFile) {
-                // Web: append the actual File object directly
                 formData.append('profile_image', webFile, webFile.name);
             } else {
-                // Native: use { uri, name, type } pattern
                 const filename = uri.split('/').pop() || 'profile.jpg';
                 const match = /\.(\w+)$/.exec(filename);
                 const type = match ? `image/${match[1]}` : `image/jpeg`;
@@ -419,7 +427,6 @@ const ProfileScreen = ({ navigation }) => {
                             </TouchableOpacity>
                         </View>
 
-                        {/* Password Verification Modal */}
                         <Modal
                             transparent
                             visible={passwordModal.visible}
@@ -461,7 +468,6 @@ const ProfileScreen = ({ navigation }) => {
                             </View>
                         </Modal>
 
-                        {/* Image Picker Modal */}
                         <Modal
                             transparent
                             visible={imageModalVisible}
@@ -542,55 +548,14 @@ const ProfileScreen = ({ navigation }) => {
 
 const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: 'transparent' },
-    contentContainer: {
-        paddingBottom: 40,
-    },
-    contentContainerDesktop: {
-        alignItems: 'center',
-        paddingVertical: 20,
-        backgroundColor: 'transparent',
-    },
-    topNav: {
-        paddingHorizontal: SPACING.m,
-        paddingTop: Platform.OS === 'ios' ? 50 : 20,
-        paddingBottom: 10,
-        backgroundColor: 'rgba(255, 255, 255, 0.6)',
-    },
-    topNavDesktop: {
-        alignItems: 'center',
-        paddingTop: 20,
-    },
-    backButton: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        alignSelf: 'flex-start',
-        width: '100%',
-        maxWidth: 700,
-    },
-    backText: {
-        fontSize: 16,
-        color: COLORS.secondary,
-        fontWeight: '600',
-        marginLeft: 4,
-    },
-    header: { 
-        padding: SPACING.xl, 
-        alignItems: 'center', 
-        backgroundColor: COLORS.glassBg, 
-        borderBottomWidth: 1, 
-        borderBottomColor: COLORS.glassBorder,
-        ...Platform.select({
-            web: { backdropFilter: 'blur(12px)' }
-        })
-    },
-    headerDesktop: {
-        width: '100%',
-        maxWidth: 700,
-        borderRadius: 16,
-        marginBottom: 20,
-        borderWidth: 1,
-        borderColor: COLORS.glassBorder,
-    },
+    contentContainer: { paddingBottom: 40 },
+    contentContainerDesktop: { alignItems: 'center', paddingVertical: 20, backgroundColor: 'transparent' },
+    topNav: { paddingHorizontal: SPACING.m, paddingTop: Platform.OS === 'ios' ? 50 : 20, paddingBottom: 10, backgroundColor: 'rgba(255, 255, 255, 0.6)' },
+    topNavDesktop: { alignItems: 'center', paddingTop: 20 },
+    backButton: { flexDirection: 'row', alignItems: 'center', alignSelf: 'flex-start', width: '100%', maxWidth: 700 },
+    backText: { fontSize: 16, color: COLORS.secondary, fontWeight: '600', marginLeft: 4 },
+    header: { padding: SPACING.xl, alignItems: 'center', backgroundColor: COLORS.glassBg, borderBottomWidth: 1, borderBottomColor: COLORS.glassBorder, ...Platform.select({ web: { backdropFilter: 'blur(12px)' } }) },
+    headerDesktop: { width: '100%', maxWidth: 700, borderRadius: 16, marginBottom: 20, borderWidth: 1, borderColor: COLORS.glassBorder },
     avatarContainer: { position: 'relative', marginBottom: SPACING.m },
     avatar: { width: 100, height: 100, borderRadius: 50, backgroundColor: COLORS.background, justifyContent: 'center', alignItems: 'center', borderWidth: 2, borderColor: COLORS.secondary, overflow: 'hidden' },
     avatarImage: { width: '100%', height: '100%' },
@@ -598,111 +563,25 @@ const styles = StyleSheet.create({
     name: { fontSize: SIZES.h2, color: COLORS.text, fontWeight: 'bold' },
     email: { fontSize: 16, color: COLORS.textSecondary, marginTop: 4 },
     section: { paddingHorizontal: 15, paddingBottom: 10, marginTop: 10 },
-    sectionDesktop: {
-        width: '100%',
-        maxWidth: 700,
-    },
+    sectionDesktop: { width: '100%', maxWidth: 700 },
     sectionTitle: { color: COLORS.textSecondary, fontSize: 14, fontWeight: 'bold', textTransform: 'uppercase', marginBottom: SPACING.m, marginLeft: 4 },
-    item: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'transparent', paddingVertical: 12, paddingHorizontal: 4, marginBottom: 8 },
-    iconBox: { width: 40, height: 40, borderRadius: 10, backgroundColor: COLORS.background, justifyContent: 'center', alignItems: 'center' },
+    item: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'transparent', paddingVertical: 12, paddingHorizontal: 4, marginBottom: 4 },
+    iconBox: { width: 40, height: 40, borderRadius: 10, backgroundColor: COLORS.background, justifyContent: 'center', alignItems: 'center', transition: 'all 0.3s ease' },
     info: { marginLeft: 15, flex: 1 },
     label: { color: COLORS.textSecondary, fontSize: 13, marginBottom: 2 },
     value: { color: COLORS.text, fontSize: 16, fontWeight: 'bold' },
-    card: {
-        backgroundColor: COLORS.glassBgDark, // Little transparent for sub-section cards
-        borderRadius: 16,
-        padding: 20,
-        elevation: 2,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 8,
-        borderWidth: 1.5,
-        borderColor: COLORS.glassBorder,
-        ...Platform.select({
-            web: { backdropFilter: 'blur(12px)' }
-        })
-    },
-    accordionHeader: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        backgroundColor: COLORS.glassBgDark,
-        paddingVertical: 15,
-        paddingHorizontal: 20,
-        borderRadius: 16,
-        borderWidth: 1,
-        borderColor: COLORS.glassBorder,
-        elevation: 1,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.05,
-        shadowRadius: 4,
-        ...Platform.select({
-            web: { backdropFilter: 'blur(8px)' }
-        })
-    },
+    card: { backgroundColor: COLORS.glassBgDark, borderRadius: 16, padding: 20, elevation: 2, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 8, borderWidth: 1.5, borderColor: COLORS.glassBorder, ...Platform.select({ web: { backdropFilter: 'blur(12px)' } }) },
+    accordionHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: COLORS.glassBgDark, paddingVertical: 15, paddingHorizontal: 20, borderRadius: 16, borderWidth: 1, borderColor: COLORS.glassBorder, elevation: 1, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 4, ...Platform.select({ web: { backdropFilter: 'blur(8px)' } }) },
     accordionTitleRow: { flexDirection: 'row', alignItems: 'center' },
     accordionTitle: { marginLeft: 12, fontSize: 16, fontWeight: 'bold', color: COLORS.text },
-    kycRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        paddingVertical: 12,
-        paddingHorizontal: 10,
-        marginBottom: 4
-    },
+    kycRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 12, paddingHorizontal: 10, marginBottom: 4 },
     kycLeft: { flexDirection: 'row', alignItems: 'center' },
-    statusBadge: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        backgroundColor: '#f0fdf4',
-        paddingHorizontal: 10,
-        paddingVertical: 4,
-        borderRadius: 8,
-        borderWidth: 1,
-        borderColor: '#10b98120'
-    },
-    statusText: { marginLeft: 4, fontSize: 12, fontWeight: 'bold', color: '#10b981' },
-    navRow: { 
-        flexDirection: 'row', 
-        alignItems: 'center', 
-        justifyContent: 'space-between', 
-        paddingVertical: 12, 
-        paddingHorizontal: 10,
-        marginBottom: 4
-    },
+    navRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 12, paddingHorizontal: 10, marginBottom: 4 },
     navLeft: { flexDirection: 'row', alignItems: 'center' },
     navText: { marginLeft: 15, fontSize: 16, color: COLORS.text, fontWeight: 'bold' },
-    logoutBtn: { 
-        flexDirection: 'row', 
-        alignItems: 'center', 
-        justifyContent: 'center', 
-        backgroundColor: 'rgba(254, 242, 242, 0.4)', 
-        paddingVertical: 15, 
-        paddingHorizontal: 20, 
-        borderRadius: 16,
-        borderWidth: 1,
-        borderColor: 'rgba(239, 68, 68, 0.3)',
-        marginTop: 30,
-        marginBottom: 20,
-        marginHorizontal: 15,
-        elevation: 1,
-        shadowColor: '#ef4444',
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
-        ...Platform.select({
-            web: { backdropFilter: 'blur(8px)' }
-        })
-    },
-    logoutBtnDesktop: {
-        width: 300,
-        alignSelf: 'center',
-    },
+    logoutBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(254, 242, 242, 0.4)', paddingVertical: 15, paddingHorizontal: 20, borderRadius: 16, borderWidth: 1, borderColor: 'rgba(239, 68, 68, 0.3)', marginTop: 30, marginBottom: 20, marginHorizontal: 15, elevation: 1, shadowColor: '#ef4444', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.1, shadowRadius: 4, ...Platform.select({ web: { backdropFilter: 'blur(8px)' } }) },
+    logoutBtnDesktop: { width: 300, alignSelf: 'center' },
     logoutText: { color: COLORS.error, fontWeight: 'bold', fontSize: 16, marginLeft: 10 },
-
-    // Modal Styles
     modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center', padding: SPACING.l },
     modalContent: { backgroundColor: COLORS.surface, borderRadius: 16, padding: SPACING.l, width: '100%', maxWidth: 350 },
     modalTitle: { fontSize: 20, fontWeight: 'bold', color: COLORS.text, marginBottom: 8 },
@@ -714,63 +593,14 @@ const styles = StyleSheet.create({
     confirmBtn: { backgroundColor: COLORS.secondary },
     cancelText: { color: COLORS.textSecondary, fontWeight: '600', fontSize: 16 },
     confirmText: { color: '#fff', fontWeight: 'bold', fontSize: 16 },
-
-    // Action Sheet Style Modal
-    actionSheetContent: {
-        backgroundColor: COLORS.surface,
-        borderTopLeftRadius: 24,
-        borderTopRightRadius: 24,
-        padding: 24,
-        width: '100%',
-        maxWidth: 450,
-        alignSelf: 'flex-end',
-        ...Platform.select({
-            ios: { paddingBottom: 40 },
-            android: { paddingBottom: 24 },
-            web: { alignSelf: 'center', borderRadius: 24 }
-        })
-    },
-    actionSheetTitle: {
-        fontSize: 18,
-        fontWeight: 'bold',
-        color: COLORS.text,
-        marginBottom: 24,
-        textAlign: 'center'
-    },
-    actionOptions: {
-        flexDirection: 'row',
-        justifyContent: 'space-around',
-        marginBottom: 24,
-    },
-    actionOption: {
-        alignItems: 'center',
-        flex: 1,
-    },
-    actionIconBox: {
-        width: 60,
-        height: 60,
-        borderRadius: 30,
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginBottom: 8,
-    },
-    actionOptionText: {
-        fontSize: 13,
-        fontWeight: '600',
-        color: COLORS.textSecondary,
-        textAlign: 'center'
-    },
-    actionCancelBtn: {
-        backgroundColor: '#f5f5f5',
-        paddingVertical: 14,
-        borderRadius: 12,
-        alignItems: 'center'
-    },
-    actionCancelText: {
-        fontSize: 16,
-        fontWeight: 'bold',
-        color: COLORS.text
-    }
+    actionSheetContent: { backgroundColor: COLORS.surface, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, width: '100%', maxWidth: 450, alignSelf: 'flex-end', ...Platform.select({ ios: { paddingBottom: 40 }, android: { paddingBottom: 24 }, web: { alignSelf: 'center', borderRadius: 24 } }) },
+    actionSheetTitle: { fontSize: 18, fontWeight: 'bold', color: COLORS.text, marginBottom: 24, textAlign: 'center' },
+    actionOptions: { flexDirection: 'row', justifyContent: 'space-around', marginBottom: 24 },
+    actionOption: { alignItems: 'center', flex: 1 },
+    actionIconBox: { width: 60, height: 60, borderRadius: 30, justifyContent: 'center', alignItems: 'center', marginBottom: 8 },
+    actionOptionText: { fontSize: 13, fontWeight: '600', color: COLORS.textSecondary, textAlign: 'center' },
+    actionCancelBtn: { backgroundColor: '#f5f5f5', paddingVertical: 14, borderRadius: 12, alignItems: 'center' },
+    actionCancelText: { fontSize: 16, fontWeight: 'bold', color: COLORS.text }
 });
 
 export default ProfileScreen;
