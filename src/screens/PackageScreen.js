@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { StyleSheet, Text, View, ScrollView, TouchableOpacity, Alert, ActivityIndicator, Platform, RefreshControl } from 'react-native';
+import React, { useState, useEffect, useRef } from 'react';
+import { StyleSheet, Text, View, ScrollView, TouchableOpacity, Alert, ActivityIndicator, Platform, RefreshControl, Animated } from 'react-native';
 import { COLORS, SPACING, SIZES } from '../theme/theme';
 import apiClient from '../api/client';
 import { CheckCircle2, Package, ChevronRight } from 'lucide-react-native';
@@ -7,36 +7,78 @@ import { useAuth } from '../store/AuthContext';
 import MainHeader from '../components/MainHeader';
 import ScreenBackground from '../components/ScreenBackground';
 
-const PackageCard = ({ item, onPurchase, loading }) => (
-    <View style={styles.card}>
-        <View style={styles.cardHeader}>
-            <Text style={styles.packageName}>{item.name}</Text>
-            <Text style={styles.packagePrice}>₹{item.price}</Text>
+const PackageCard = ({ item, onPurchase, loading }) => {
+    const titleScale = useRef(new Animated.Value(1)).current;
+    const priceScale = useRef(new Animated.Value(1)).current;
+    const rotateAnim = useRef(new Animated.Value(0)).current;
+
+    const animateCard = () => {
+        // Pop and Wiggle effect
+        Animated.parallel([
+            // Title scales up and bounces back
+            Animated.sequence([
+                Animated.timing(titleScale, { toValue: 1.15, duration: 120, useNativeDriver: true }),
+                Animated.spring(titleScale, { toValue: 1, friction: 3, tension: 40, useNativeDriver: true })
+            ]),
+            // Price scales up more and bounces back
+            Animated.sequence([
+                Animated.timing(priceScale, { toValue: 1.3, duration: 120, useNativeDriver: true }),
+                Animated.spring(priceScale, { toValue: 1, friction: 3, tension: 40, useNativeDriver: true })
+            ]),
+            // Slight wiggle
+            Animated.sequence([
+                Animated.timing(rotateAnim, { toValue: 1, duration: 60, useNativeDriver: true }),
+                Animated.timing(rotateAnim, { toValue: -1, duration: 120, useNativeDriver: true }),
+                Animated.timing(rotateAnim, { toValue: 0, duration: 60, useNativeDriver: true }),
+            ])
+        ]).start();
+    };
+
+    const handlePress = () => {
+        animateCard();
+        onPurchase(item.id);
+    };
+
+    const wiggle = rotateAnim.interpolate({
+        inputRange: [-1, 1],
+        outputRange: ['-3deg', '3deg']
+    });
+
+    return (
+        <View style={styles.card}>
+            <View style={styles.cardHeader}>
+                <Animated.Text style={[styles.packageName, { transform: [{ scale: titleScale }, { rotate: wiggle }] }]}>
+                    {item.name}
+                </Animated.Text>
+                <Animated.Text style={[styles.packagePrice, { transform: [{ scale: priceScale }, { rotate: wiggle }] }]}>
+                    ₹{item.price}
+                </Animated.Text>
+            </View>
+            <View style={styles.features}>
+                <View style={styles.featureItem}>
+                    <CheckCircle2 color={COLORS.success} size={18} />
+                    <Text style={styles.featureText}>Coupon: ₹{item.coupon_amount}</Text>
+                </View>
+                <View style={styles.featureItem}>
+                    <CheckCircle2 color={COLORS.success} size={18} />
+                    <Text style={styles.featureText}>Validity: {item.validity_months} Months</Text>
+                </View>
+                <View style={styles.featureItem}>
+                    <CheckCircle2 color={COLORS.success} size={18} />
+                    <Text style={styles.featureText}>15-Level Commission Access</Text>
+                </View>
+            </View>
+            <TouchableOpacity
+                style={[styles.buyButton, { opacity: loading ? 0.7 : 1 }]}
+                onPress={handlePress}
+                disabled={loading}
+            >
+                <Text style={styles.buyButtonText}>{loading ? 'Processing...' : 'Purchase Now'}</Text>
+                {!loading && <ChevronRight color={COLORS.background} size={20} />}
+            </TouchableOpacity>
         </View>
-        <View style={styles.features}>
-            <View style={styles.featureItem}>
-                <CheckCircle2 color={COLORS.success} size={18} />
-                <Text style={styles.featureText}>Coupon: ₹{item.coupon_amount}</Text>
-            </View>
-            <View style={styles.featureItem}>
-                <CheckCircle2 color={COLORS.success} size={18} />
-                <Text style={styles.featureText}>Validity: {item.validity_months} Months</Text>
-            </View>
-            <View style={styles.featureItem}>
-                <CheckCircle2 color={COLORS.success} size={18} />
-                <Text style={styles.featureText}>15-Level Commission Access</Text>
-            </View>
-        </View>
-        <TouchableOpacity
-            style={[styles.buyButton, { opacity: loading ? 0.7 : 1 }]}
-            onPress={() => onPurchase(item.id)}
-            disabled={loading}
-        >
-            <Text style={styles.buyButtonText}>{loading ? 'Processing...' : 'Purchase Now'}</Text>
-            {!loading && <ChevronRight color={COLORS.background} size={20} />}
-        </TouchableOpacity>
-    </View>
-);
+    );
+};
 
 const PackageScreen = ({ navigation }) => {
     const { logout } = useAuth();

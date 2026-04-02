@@ -1,11 +1,78 @@
-import React, { useEffect, useState } from 'react';
-import { StyleSheet, Text, View, TouchableOpacity, ScrollView, ActivityIndicator, Alert, Platform, useWindowDimensions } from 'react-native';
+import React, { useEffect, useState, useRef } from 'react';
+import { StyleSheet, Text, View, TouchableOpacity, ScrollView, ActivityIndicator, Alert, Platform, useWindowDimensions, Animated } from 'react-native';
 import { COLORS, SPACING, SIZES } from '../theme/theme';
 import apiClient from '../api/client';
 import { CheckCircle2, ChevronRight, Crown, Shield, Star, Power } from 'lucide-react-native';
 import { useAuth } from '../store/AuthContext';
 import ScreenBackground from '../components/ScreenBackground';
 import AnimatedCard from '../components/AnimatedCard';
+
+const PackageCardContent = ({ pkg, getIcon, onSelect }) => {
+    const titleScale = useRef(new Animated.Value(1)).current;
+    const priceScale = useRef(new Animated.Value(1)).current;
+    const rotateAnim = useRef(new Animated.Value(0)).current;
+
+    const animate = () => {
+        Animated.parallel([
+            Animated.sequence([
+                Animated.timing(titleScale, { toValue: 1.15, duration: 120, useNativeDriver: true }),
+                Animated.spring(titleScale, { toValue: 1, friction: 3, tension: 40, useNativeDriver: true })
+            ]),
+            Animated.sequence([
+                Animated.timing(priceScale, { toValue: 1.3, duration: 120, useNativeDriver: true }),
+                Animated.spring(priceScale, { toValue: 1, friction: 3, tension: 40, useNativeDriver: true })
+            ]),
+            Animated.sequence([
+                Animated.timing(rotateAnim, { toValue: 1, duration: 60, useNativeDriver: true }),
+                Animated.timing(rotateAnim, { toValue: -1, duration: 120, useNativeDriver: true }),
+                Animated.timing(rotateAnim, { toValue: 0, duration: 60, useNativeDriver: true }),
+            ])
+        ]).start();
+    };
+
+    const handlePress = () => {
+        animate();
+        onSelect();
+    };
+
+    const wiggle = rotateAnim.interpolate({
+        inputRange: [-1, 1],
+        outputRange: ['-3deg', '3deg']
+    });
+
+    return (
+        <TouchableOpacity 
+            activeOpacity={0.9} 
+            onPress={handlePress} 
+            style={{ flexDirection: 'row', alignItems: 'center', width: '100%', padding: 20 }}
+        >
+            <View style={styles.iconContainer}>
+                {getIcon(pkg.name)}
+            </View>
+            <View style={styles.cardContent}>
+                <Animated.Text style={[styles.packageName, { transform: [{ scale: titleScale }, { rotate: wiggle }] }]}>
+                    {pkg.name} Package
+                </Animated.Text>
+                <Animated.Text style={[styles.packagePrice, { transform: [{ scale: priceScale }, { rotate: wiggle }] }]}>
+                    ₹{pkg.price}
+                </Animated.Text>
+                <View style={styles.featureRow}>
+                    <CheckCircle2 size={16} color="#217323" />
+                    <Text style={styles.featureText}>₹{pkg.coupon_amount} Monthly Coupon</Text>
+                </View>
+                <View style={styles.featureRow}>
+                    <CheckCircle2 size={16} color="#217323" />
+                    <Text style={styles.featureText}>{pkg.duration_months} Months Duration</Text>
+                </View>
+                <View style={styles.featureRow}>
+                    <CheckCircle2 size={16} color="#217323" />
+                    <Text style={styles.featureText}>Full Dashboard Access</Text>
+                </View>
+            </View>
+            <ChevronRight color="#ccc" size={24} />
+        </TouchableOpacity>
+    );
+};
 
 const PackageSelectionScreen = ({ navigation }) => {
     const { width } = useWindowDimensions();
@@ -78,30 +145,9 @@ const PackageSelectionScreen = ({ navigation }) => {
                     <AnimatedCard
                         key={pkg.id}
                         style={styles.card}
-                        onPress={() => handleSelect(pkg)}
+                        disableHover={true} // We handle it in content for better control
                     >
-                        <View style={{ flexDirection: 'row', alignItems: 'center', width: '100%' }}>
-                            <View style={styles.iconContainer}>
-                                {getIcon(pkg.name)}
-                            </View>
-                            <View style={styles.cardContent}>
-                                <Text style={styles.packageName}>{pkg.name} Package</Text>
-                                <Text style={styles.packagePrice}>₹{pkg.price}</Text>
-                                <View style={styles.featureRow}>
-                                    <CheckCircle2 size={16} color="#217323" />
-                                    <Text style={styles.featureText}>₹{pkg.coupon_amount} Monthly Coupon</Text>
-                                </View>
-                                <View style={styles.featureRow}>
-                                    <CheckCircle2 size={16} color="#217323" />
-                                    <Text style={styles.featureText}>{pkg.duration_months} Months Duration</Text>
-                                </View>
-                                <View style={styles.featureRow}>
-                                    <CheckCircle2 size={16} color="#217323" />
-                                    <Text style={styles.featureText}>Full Dashboard Access</Text>
-                                </View>
-                            </View>
-                            <ChevronRight color="#ccc" size={24} />
-                        </View>
+                        <PackageCardContent pkg={pkg} getIcon={getIcon} onSelect={() => handleSelect(pkg)} />
                     </AnimatedCard>
                 ))}
                 </View>
