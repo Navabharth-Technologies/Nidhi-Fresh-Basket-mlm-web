@@ -45,40 +45,29 @@ const ProfileItem = ({ label, value, icon: Icon, isSensitive, onReveal, onHide, 
 };
 
 const HoverableKYCRow = ({ label, value, icon: Icon, iconColor, isSensitive, revealed, onToggle }) => {
-    const [isHovered, setIsHovered] = useState(false);
-    
     return (
-        <View 
-            style={[
-                styles.kycRow, 
-                isHovered && Platform.OS === 'web' && { backgroundColor: 'rgba(46, 125, 50, 0.12)', borderRadius: 12 }
-            ]}
-            {...(Platform.OS === 'web' ? {
-                onMouseEnter: () => setIsHovered(true),
-                onMouseLeave: () => setIsHovered(false)
-            } : {})}
+        <AnimatedCard
+            style={styles.kycRow}
+            hoverStyle={{ backgroundColor: 'rgba(46, 125, 50, 0.15)', borderRadius: 12 }}
+            onPress={onToggle}
         >
-            <View style={styles.kycLeft}>
-                <View style={[styles.iconBox, iconColor && { backgroundColor: iconColor + '10' }]}>
-                    <Icon color={iconColor || COLORS.textSecondary} size={20} />
+            <View style={{ flexDirection: 'row', alignItems: 'center', width: '100%', paddingVertical: 8, paddingHorizontal: 10 }}>
+                <View style={styles.kycLeft}>
+                    <View style={[styles.iconBox, iconColor && { backgroundColor: iconColor + '10' }]}>
+                        <Icon color={iconColor || COLORS.textSecondary} size={20} />
+                    </View>
+                    <View style={styles.info}>
+                        <Text style={styles.label}>{label}</Text>
+                        <Text style={styles.value}>{value}</Text>
+                    </View>
                 </View>
-                <View style={styles.info}>
-                    <Text style={styles.label}>{label}</Text>
-                    <Text style={styles.value}>{value}</Text>
-                </View>
-            </View>
-            {isSensitive && (
-                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                    <TouchableOpacity 
-                        onPress={onToggle}
-                        activeOpacity={0.7}
-                        style={{ marginLeft: 12, padding: 5 }}
-                    >
+                {isSensitive && (
+                    <View style={{ marginLeft: 'auto', padding: 5 }}>
                         {revealed ? <Eye color={COLORS.success} size={18} /> : <EyeOff color={COLORS.textSecondary} size={18} />}
-                    </TouchableOpacity>
-                </View>
-            )}
-        </View>
+                    </View>
+                )}
+            </View>
+        </AnimatedCard>
     );
 };
 
