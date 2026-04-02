@@ -97,17 +97,23 @@ const WithdrawRequestScreen = ({ route }) => {
         // Prevent multiple decimal points
         if ((cleanText.match(/\./g) || []).length > 1) return;
         
+        let val = parseFloat(cleanText);
+        
+        // If the entered value exceeds the balance, cap it immediately
+        if (!isNaN(val) && val > balance) {
+            setForm({ ...form, amount: balance.toString() });
+            setAmountError('Maximum available balance reached');
+            return;
+        }
+
         setForm({ ...form, amount: cleanText });
         
-        const val = parseFloat(cleanText);
         if (cleanText === '') {
             setAmountError('');
         } else if (isNaN(val)) {
             setAmountError('Invalid amount');
         } else if (val < 500) {
             setAmountError('Minimum withdrawal amount is ₹500');
-        } else if (val > balance) {
-            setAmountError('Amount exceeds commission balance');
         } else {
             setAmountError('');
         }
