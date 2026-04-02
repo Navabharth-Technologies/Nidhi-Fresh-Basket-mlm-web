@@ -51,7 +51,7 @@ const HoverableKYCRow = ({ label, value, icon: Icon, iconColor, isSensitive, rev
         <View 
             style={[
                 styles.kycRow, 
-                isHovered && Platform.OS === 'web' && { backgroundColor: 'rgba(46, 125, 50, 0.08)', borderRadius: 12 }
+                isHovered && Platform.OS === 'web' && { backgroundColor: 'rgba(46, 125, 50, 0.12)', borderRadius: 12 }
             ]}
             {...(Platform.OS === 'web' ? {
                 onMouseEnter: () => setIsHovered(true),
@@ -660,10 +660,8 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'space-between',
         paddingVertical: 12,
-        paddingHorizontal: 4,
-        borderBottomWidth: 1,
-        borderBottomColor: 'rgba(0,0,0,0.05)',
-        marginBottom: 8
+        paddingHorizontal: 10,
+        marginBottom: 4
     },
     kycLeft: { flexDirection: 'row', alignItems: 'center' },
     statusBadge: {
@@ -682,8 +680,8 @@ const styles = StyleSheet.create({
         alignItems: 'center', 
         justifyContent: 'space-between', 
         paddingVertical: 12, 
-        borderBottomWidth: 1, 
-        borderBottomColor: 'rgba(0,0,0,0.05)'
+        paddingHorizontal: 10,
+        marginBottom: 4
     },
     navLeft: { flexDirection: 'row', alignItems: 'center' },
     navText: { marginLeft: 15, fontSize: 16, color: COLORS.text, fontWeight: 'bold' },
