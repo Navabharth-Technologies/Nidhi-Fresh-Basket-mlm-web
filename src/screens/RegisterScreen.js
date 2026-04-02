@@ -112,7 +112,7 @@ const RegisterScreen = ({ navigation }) => {
         }
 
         // Check for garbage patterns in name
-        const repeatedChars = /(.)\1{2,}/; 
+        const repeatedChars = /(.)\1{2,}/;
         if (repeatedChars.test(full_name)) {
             return showAlert('Error', 'Please enter a valid full name (no more than 2 repeated characters)');
         }
@@ -123,7 +123,7 @@ const RegisterScreen = ({ navigation }) => {
         if (!/^\d{10}$/.test(phone)) {
             return showAlert('Error', 'Phone number must be exactly 10 digits');
         }
-        
+
         // Advanced Phone Validation (Block repeated/sequential)
         const isRepeated = /^(.)\1{9}$/.test(phone);
         const isSequential = /^(0123456789|1234567890|9876543210)$/.test(phone);
@@ -166,12 +166,12 @@ const RegisterScreen = ({ navigation }) => {
     const updateForm = (key, value) => {
         // --- FIELD RESTRICTIONS ---
         let cleanValue = value;
-        
+
         if (key === 'full_name') {
             // Allow only letters and spaces, then capitalize first letter of each word
             cleanValue = value.replace(/[^a-zA-Z\s]/g, '')
-                              .replace(/\b\w/g, char => char.toUpperCase());
-            
+                .replace(/\b\w/g, char => char.toUpperCase());
+
             // Strictly block 3 or more repeated characters in real-time
             // If the user tries to type a 3rd identical character, it gets trimmed back to 2
             cleanValue = cleanValue.replace(/(.)\1{2,}/g, '$1$1');
@@ -215,7 +215,7 @@ const RegisterScreen = ({ navigation }) => {
                     setPhoneError('This phone number pattern is invalid.');
                     return;
                 }
-                
+
                 setPhoneChecking(true);
                 apiClient.post('/users/check-phone', { phone: val })
                     .then(res => {
@@ -322,10 +322,10 @@ const RegisterScreen = ({ navigation }) => {
                             autoCapitalize="characters"
                         />
                         {referralInfo.loading ? (
-                             <Text style={[styles.validationInfo, { marginTop: -15, marginBottom: 15 }]}>Checking referral...</Text>
+                            <Text style={[styles.validationInfo, { marginTop: -15, marginBottom: 15 }]}>Checking referral...</Text>
                         ) : referralInfo.name ? (
                             <Text style={[
-                                styles.validationInfo, 
+                                styles.validationInfo,
                                 { marginTop: -15, marginBottom: 15 },
                                 referralInfo.name === 'Invalid Referral Code' && { color: '#dc2626' }
                             ]}>
@@ -337,7 +337,7 @@ const RegisterScreen = ({ navigation }) => {
                         <View style={[styles.passwordContainer, isPasswordFocused && styles.passwordContainerFocused]}>
                             <TextInput
                                 style={styles.passwordInput}
-                                placeholder="••••••••"
+                                placeholder="Enter Password"
                                 placeholderTextColor="#999"
                                 value={formData.password}
                                 onChangeText={(v) => updateForm('password', v.replace(/\s/g, ''))}
@@ -357,7 +357,7 @@ const RegisterScreen = ({ navigation }) => {
                         <View style={[styles.passwordContainer, isConfirmPasswordFocused && styles.passwordContainerFocused]}>
                             <TextInput
                                 style={styles.passwordInput}
-                                placeholder="••••••••"
+                                placeholder="Enter Password Again"
                                 placeholderTextColor="#999"
                                 value={formData.confirm_password}
                                 onChangeText={(v) => updateForm('confirm_password', v.replace(/\s/g, ''))}

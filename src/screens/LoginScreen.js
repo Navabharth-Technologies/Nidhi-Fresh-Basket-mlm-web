@@ -781,9 +781,9 @@ const LoginScreen = ({ navigation }) => {
                                     <TouchableOpacity onPress={() => navigation.navigate('PrivacyPolicy')}>
                                         <Text style={styles.link}>Privacy Policy</Text>
                                     </TouchableOpacity>
-                                    <Text style={styles.linkDivider}>•</Text>
+                                    <Text style={styles.linkDivider}> | </Text>
                                     <TouchableOpacity onPress={() => navigation.navigate('TermsAndConditions')}>
-                                        <Text style={styles.link}>Terms of Use</Text>
+                                        <Text style={styles.link}>Terms & Conditions</Text>
                                     </TouchableOpacity>
                                 </View>
 
@@ -1065,7 +1065,7 @@ const styles = StyleSheet.create({
         marginBottom: 12,
         height: 52,
         paddingLeft: 12,
-        paddingRight: 4, 
+        paddingRight: 4,
         width: '100%',
         overflow: 'hidden',
     },
