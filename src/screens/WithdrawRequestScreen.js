@@ -93,10 +93,13 @@ const WithdrawRequestScreen = ({ route }) => {
 
     const handleAmountChange = (t) => {
         // Only allow numbers and one decimal point
-        const cleanText = t.replace(/[^0-9.]/g, '');
-        // Prevent multiple decimal points
-        if ((cleanText.match(/\./g) || []).length > 1) return;
+        let cleanText = t.replace(/[^0-9.]/g, '');
         
+        // Check for decimal positions: limit to 2 digits after the dot
+        const parts = cleanText.split('.');
+        if (parts.length > 2) return; // Double dots
+        if (parts.length === 2 && parts[1].length > 2) return; // More than 2 decimals
+
         let val = parseFloat(cleanText);
         
         // If the entered value exceeds the balance, cap it immediately
