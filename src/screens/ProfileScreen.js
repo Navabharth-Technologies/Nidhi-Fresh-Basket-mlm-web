@@ -20,9 +20,10 @@ const ProfileItem = ({ label, value, icon: Icon, isSensitive, onReveal, onHide, 
     return (
         <AnimatedCard
             style={styles.item}
+            hoverStyle={{ backgroundColor: 'rgba(46, 125, 50, 0.08)', borderRadius: 12 }}
             onPress={isSensitive ? (revealed ? onHide : onReveal) : null}
         >
-            <View style={{ flexDirection: 'row', alignItems: 'center', width: '100%' }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', width: '100%', paddingVertical: 8, paddingHorizontal: 10 }}>
                 <View style={[styles.iconBox, iconColor && { backgroundColor: iconColor + '10' }]}>
                     <Icon color={iconColor || COLORS.textSecondary} size={20} />
                 </View>
@@ -40,6 +41,44 @@ const ProfileItem = ({ label, value, icon: Icon, isSensitive, onReveal, onHide, 
                 )}
             </View>
         </AnimatedCard>
+    );
+};
+
+const HoverableKYCRow = ({ label, value, icon: Icon, iconColor, isSensitive, revealed, onToggle }) => {
+    const [isHovered, setIsHovered] = useState(false);
+    
+    return (
+        <View 
+            style={[
+                styles.kycRow, 
+                isHovered && Platform.OS === 'web' && { backgroundColor: 'rgba(46, 125, 50, 0.08)', borderRadius: 12 }
+            ]}
+            {...(Platform.OS === 'web' ? {
+                onMouseEnter: () => setIsHovered(true),
+                onMouseLeave: () => setIsHovered(false)
+            } : {})}
+        >
+            <View style={styles.kycLeft}>
+                <View style={[styles.iconBox, iconColor && { backgroundColor: iconColor + '10' }]}>
+                    <Icon color={iconColor || COLORS.textSecondary} size={20} />
+                </View>
+                <View style={styles.info}>
+                    <Text style={styles.label}>{label}</Text>
+                    <Text style={styles.value}>{value}</Text>
+                </View>
+            </View>
+            {isSensitive && (
+                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                    <TouchableOpacity 
+                        onPress={onToggle}
+                        activeOpacity={0.7}
+                        style={{ marginLeft: 12, padding: 5 }}
+                    >
+                        {revealed ? <Eye color={COLORS.success} size={18} /> : <EyeOff color={COLORS.textSecondary} size={18} />}
+                    </TouchableOpacity>
+                </View>
+            )}
+        </View>
     );
 };
 
@@ -215,6 +254,16 @@ const ProfileScreen = ({ navigation }) => {
         }
     };
 
+    const maskAadhar = (val) => {
+        if (!val) return 'XXXX-XXXX-XXXX';
+        return revealedData.aadhar ? val : `XXXX-XXXX-${val.slice(-4)}`;
+    };
+
+    const maskPAN = (val) => {
+        if (!val) return 'XXXX-XXXX-XXXX';
+        return revealedData.pan ? val : `XXXX-XXXX-${val.slice(-4)}`;
+    };
+
     if (!profile) {
         return (
             <ScreenBackground>
@@ -263,7 +312,6 @@ const ProfileScreen = ({ navigation }) => {
                             <View style={[styles.card, { marginTop: 5 }]}>
                                 <ProfileItem label="Phone Number" value={profile.phone} icon={Phone} iconColor="#3b82f6" />
                                 <ProfileItem label="Email ID" value={profile.email} icon={Mail} iconColor="#ef4444" />
-
                             </View>
                         </View>
 
@@ -282,47 +330,25 @@ const ProfileScreen = ({ navigation }) => {
 
                             {isKYCOpen && (
                                 <View style={[styles.card, { marginTop: 5 }]}>
-                                    <View style={styles.kycRow}>
-                                        <View style={styles.kycLeft}>
-                                            <View style={[styles.iconBox, { backgroundColor: '#06b6d410' }]}>
-                                                <CreditCard color="#06b6d4" size={20} />
-                                            </View>
-                                            <View style={styles.info}>
-                                                <Text style={styles.label}>Aadhar</Text>
-                                                <Text style={styles.value}>{revealedData.aadhar ? (profile.aadhar_number || 'N/A') : (profile.aadhar_number ? `XXXX-XXXX-${profile.aadhar_number.slice(-4)}` : 'XXXX-XXXX-XXXX')}</Text>
-                                            </View>
-                                        </View>
-                                        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                                            <TouchableOpacity 
-                                                onPress={() => toggleReveal('aadhar')}
-                                                activeOpacity={0.7}
-                                                style={{ marginLeft: 12, padding: 5 }}
-                                            >
-                                                {revealedData.aadhar ? <Eye color={COLORS.success} size={18} /> : <EyeOff color={COLORS.textSecondary} size={18} />}
-                                            </TouchableOpacity>
-                                        </View>
-                                    </View>
-
-                                    <View style={styles.kycRow}>
-                                        <View style={styles.kycLeft}>
-                                            <View style={[styles.iconBox, { backgroundColor: '#f9731610' }]}>
-                                                <CreditCard color="#f97316" size={20} />
-                                            </View>
-                                            <View style={styles.info}>
-                                                <Text style={styles.label}>PAN</Text>
-                                                <Text style={styles.value}>{revealedData.pan ? (profile.pan_number || 'N/A') : (profile.pan_number ? `XXXX-XXXX-${profile.pan_number.slice(-4)}` : 'XXXX-XXXX-XXXX')}</Text>
-                                            </View>
-                                        </View>
-                                        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                                            <TouchableOpacity 
-                                                onPress={() => toggleReveal('pan')}
-                                                activeOpacity={0.7}
-                                                style={{ marginLeft: 12, padding: 5 }}
-                                            >
-                                                {revealedData.pan ? <Eye color={COLORS.success} size={18} /> : <EyeOff color={COLORS.textSecondary} size={18} />}
-                                            </TouchableOpacity>
-                                        </View>
-                                    </View>
+                                    <HoverableKYCRow 
+                                        label="Aadhar" 
+                                        value={maskAadhar(profile.aadhar_number)} 
+                                        icon={CreditCard} 
+                                        iconColor="#06b6d4" 
+                                        isSensitive 
+                                        revealed={revealedData.aadhar} 
+                                        onToggle={() => toggleReveal('aadhar')} 
+                                    />
+                                    
+                                    <HoverableKYCRow 
+                                        label="PAN" 
+                                        value={maskPAN(profile.pan_number)} 
+                                        icon={CreditCard} 
+                                        iconColor="#f97316" 
+                                        isSensitive 
+                                        revealed={revealedData.pan} 
+                                        onToggle={() => toggleReveal('pan')} 
+                                    />
 
                                     <ProfileItem
                                         label="Bank Account Number"
@@ -356,53 +382,53 @@ const ProfileScreen = ({ navigation }) => {
                                     />
                                 </View>
                             )}
-                    </View>
+                        </View>
 
-                    <View style={[styles.section, isDesktop && styles.sectionDesktop, { marginTop: 15 }]}>
-                        <View style={styles.card}>
-                            <TouchableOpacity style={styles.navRow} onPress={() => navigation.navigate('TermsAndConditions')}>
-                                <View style={styles.navLeft}>
-                                    <View style={[styles.iconBox, { backgroundColor: '#6366f110' }]}>
-                                        <FileText color="#6366f1" size={20} />
+                        <View style={[styles.section, isDesktop && styles.sectionDesktop, { marginTop: 15 }]}>
+                            <View style={styles.card}>
+                                <TouchableOpacity style={styles.navRow} onPress={() => navigation.navigate('TermsAndConditions')}>
+                                    <View style={styles.navLeft}>
+                                        <View style={[styles.iconBox, { backgroundColor: '#6366f110' }]}>
+                                            <FileText color="#6366f1" size={20} />
+                                        </View>
+                                        <Text style={[styles.navText, { fontWeight: 'bold' }]}>Terms & Conditions</Text>
                                     </View>
-                                    <Text style={[styles.navText, { fontWeight: 'bold' }]}>Terms & Conditions</Text>
-                                </View>
-                                <ChevronRight color={COLORS.textSecondary} size={20} />
-                            </TouchableOpacity>
+                                    <ChevronRight color={COLORS.textSecondary} size={20} />
+                                </TouchableOpacity>
 
-                            <TouchableOpacity style={styles.navRow} onPress={() => navigation.navigate('PrivacyPolicy')}>
-                                <View style={styles.navLeft}>
-                                    <View style={[styles.iconBox, { backgroundColor: '#10b98110' }]}>
-                                        <Shield color="#10b981" size={20} />
+                                <TouchableOpacity style={styles.navRow} onPress={() => navigation.navigate('PrivacyPolicy')}>
+                                    <View style={styles.navLeft}>
+                                        <View style={[styles.iconBox, { backgroundColor: '#10b98110' }]}>
+                                            <Shield color="#10b981" size={20} />
+                                        </View>
+                                        <Text style={[styles.navText, { fontWeight: 'bold' }]}>Privacy Policy</Text>
                                     </View>
-                                    <Text style={[styles.navText, { fontWeight: 'bold' }]}>Privacy Policy</Text>
-                                </View>
-                                <ChevronRight color={COLORS.textSecondary} size={20} />
-                            </TouchableOpacity>
+                                    <ChevronRight color={COLORS.textSecondary} size={20} />
+                                </TouchableOpacity>
 
-                            <TouchableOpacity style={[styles.navRow, { borderBottomWidth: 0 }]} onPress={() => navigation.navigate('HelpSupport')}>
-                                <View style={styles.navLeft}>
-                                    <View style={[styles.iconBox, { backgroundColor: '#f59e0b10' }]}>
-                                        <HelpCircle color="#f59e0b" size={20} />
+                                <TouchableOpacity style={[styles.navRow, { borderBottomWidth: 0 }]} onPress={() => navigation.navigate('HelpSupport')}>
+                                    <View style={styles.navLeft}>
+                                        <View style={[styles.iconBox, { backgroundColor: '#f59e0b10' }]}>
+                                            <HelpCircle color="#f59e0b" size={20} />
+                                        </View>
+                                        <Text style={[styles.navText, { fontWeight: 'bold' }]}>Help & Support</Text>
                                     </View>
-                                    <Text style={[styles.navText, { fontWeight: 'bold' }]}>Help & Support</Text>
+                                    <ChevronRight color={COLORS.textSecondary} size={20} />
+                                </TouchableOpacity>
+                            </View>
+                        </View>
+
+                        <View style={[styles.section, isDesktop && styles.sectionDesktop, { marginTop: 15 }]}>
+                            <TouchableOpacity style={[styles.card, styles.navRow, { paddingHorizontal: 20 }]} onPress={() => navigation.navigate('AboutUs')}>
+                                <View style={styles.navLeft}>
+                                    <View style={[styles.iconBox, { backgroundColor: COLORS.secondary + '10' }]}>
+                                        <Info color={COLORS.secondary} size={20} />
+                                    </View>
+                                    <Text style={[styles.navText, { fontWeight: 'bold' }]}>About Us</Text>
                                 </View>
                                 <ChevronRight color={COLORS.textSecondary} size={20} />
                             </TouchableOpacity>
                         </View>
-                    </View>
-
-                    <View style={[styles.section, isDesktop && styles.sectionDesktop, { marginTop: 15 }]}>
-                        <TouchableOpacity style={[styles.card, styles.navRow, { paddingHorizontal: 20 }]} onPress={() => navigation.navigate('AboutUs')}>
-                            <View style={styles.navLeft}>
-                                <View style={[styles.iconBox, { backgroundColor: COLORS.secondary + '10' }]}>
-                                    <Info color={COLORS.secondary} size={20} />
-                                </View>
-                                <Text style={[styles.navText, { fontWeight: 'bold' }]}>About Us</Text>
-                            </View>
-                            <ChevronRight color={COLORS.textSecondary} size={20} />
-                        </TouchableOpacity>
-                    </View>
 
                         {/* Password Verification Modal */}
                         <Modal
