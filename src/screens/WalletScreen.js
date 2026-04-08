@@ -118,7 +118,7 @@ const TransactionItem = ({ item }) => {
 const WalletScreen = () => {
     const { width } = useWindowDimensions();
     const isDesktop = width >= 768;
-    const { logout } = useAuth();
+    const { logout, profile } = useAuth();
     const navigation = useNavigation();
     const [balances, setBalances] = useState({
         coupon_balance: '0.00',
