@@ -173,7 +173,6 @@ const NetworkScreen = ({ navigation }) => {
         } else {
             Share.share({
                 message: `Join me on Nidhi Fresh Basket: ${referralUrl}`,
-                url: referralUrl
             });
         }
     };
@@ -196,7 +195,6 @@ const NetworkScreen = ({ navigation }) => {
             await Share.share({
                 title: 'Nidhi Fresh Basket Referral',
                 message: `Join me on Nidhi Fresh Basket and grow your network! Register here: ${referralUrl}`,
-                url: referralUrl
             });
         } catch (error) {
             console.log('Share error:', error.message);

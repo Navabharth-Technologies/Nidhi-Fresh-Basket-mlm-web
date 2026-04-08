@@ -220,6 +220,7 @@ const AdminWithdrawRequestsScreen = () => {
         <ScreenBackground admin>
             <View style={styles.container}>
             <FlatList
+                style={{ flex: 1 }}
                 data={requests}
                 keyExtractor={(item) => `admin-withdraw-${item.id}`}
                 renderItem={renderRequest}

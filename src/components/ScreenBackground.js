@@ -25,17 +25,20 @@ const styles = StyleSheet.create({
     background: {
         flex: 1,
         width: '100%',
-        minHeight: Platform.OS === 'web' ? '100vh' : '100%',
+        height: '100%',
         ...Platform.select({
-            web: { height: 'auto' }
+            web: { 
+                overflow: 'hidden'
+            }
         })
     },
     overlay: {
         flex: 1,
         backgroundColor: 'rgba(255, 255, 255, 0.5)', 
-        minHeight: Platform.OS === 'web' ? '100vh' : '100%',
+        height: '100%',
         ...Platform.select({
             web: {
+                overflow: 'hidden',
                 userSelect: 'none',
                 WebkitUserSelect: 'none',
                 msUserSelect: 'none',

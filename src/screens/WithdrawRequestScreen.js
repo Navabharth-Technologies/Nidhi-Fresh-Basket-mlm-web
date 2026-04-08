@@ -27,6 +27,7 @@ const WithdrawRequestScreen = ({ route }) => {
         transfer_method: 'bank' // Default method
     });
     const [amountError, setAmountError] = useState('');
+    const [upiError, setUpiError] = useState('');
     const [loading, setLoading] = useState(false);
     const [fetchingData, setFetchingData] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
@@ -122,6 +123,22 @@ const WithdrawRequestScreen = ({ route }) => {
         }
     };
 
+    const handleUpiChange = (v) => {
+        const cleanUpi = v.toLowerCase().replace(/[^a-z0-9@.\-_]/g, '');
+        setForm({ ...form, upi_id: cleanUpi });
+        
+        if (!cleanUpi) {
+            setUpiError('');
+        } else {
+            const upiRegex = /^[a-zA-Z0-9.\-_]{2,256}@[a-zA-Z]{2,64}$/;
+            if (!upiRegex.test(cleanUpi)) {
+                setUpiError('Invalid UPI format (Handle after @ must only be letters)');
+            } else {
+                setUpiError('');
+            }
+        }
+    };
+
     const handleSubmit = async () => {
         // Validation
         const isBank = form.transfer_method === 'bank';
@@ -142,9 +159,15 @@ const WithdrawRequestScreen = ({ route }) => {
             }
         }
 
-        if (!isBank && !form.upi_id) {
-            Alert.alert('Error', 'Please fill UPI ID');
-            return;
+        if (!isBank) {
+            if (!form.upi_id) {
+                Alert.alert('Error', 'Please fill UPI ID');
+                return;
+            }
+            if (upiError) {
+                Alert.alert('Invalid UPI ID', upiError);
+                return;
+            }
         }
 
         const withdrawAmount = parseFloat(form.amount);
@@ -283,19 +306,20 @@ const WithdrawRequestScreen = ({ route }) => {
                         <View style={styles.inputGroup}>
                             <Text style={styles.label}>UPI ID</Text>
                             <TextInput
-                                style={styles.input}
+                                style={[styles.input, upiError ? { borderColor: 'red' } : {}]}
                                 placeholder="yourname@upi"
                                 value={form.upi_id}
-                                onChangeText={(v) => setForm({ ...form, upi_id: v.toLowerCase().replace(/[^a-z0-9@.\-_]/g, '') })}
+                                onChangeText={handleUpiChange}
                             />
+                            {!!upiError && <Text style={{ color: 'red', fontSize: 11, marginTop: 4, marginLeft: 4 }}>{upiError}</Text>}
                         </View>
                     )}
 
                     <View style={styles.buttonGroup}>
                         <TouchableOpacity
-                            style={[styles.button, styles.submitButton, (!!amountError || !form.amount || loading) ? { backgroundColor: '#9ca3af' } : {}]}
+                            style={[styles.button, styles.submitButton, (!!amountError || !!upiError || !form.amount || (form.transfer_method === 'upi' && !form.upi_id) || loading) ? { backgroundColor: '#9ca3af' } : {}]}
                             onPress={handleSubmit}
-                            disabled={loading || !!amountError || !form.amount}
+                            disabled={loading || !!amountError || !!upiError || !form.amount || (form.transfer_method === 'upi' && !form.upi_id)}
                         >
                             {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>Submit Request</Text>}
                         </TouchableOpacity>

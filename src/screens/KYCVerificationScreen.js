@@ -35,6 +35,7 @@ const KYCVerificationScreen = ({ navigation, route }) => {
     const isRejected = kycStatus?.toLowerCase() === 'rejected';
     const isRepurchaseMode = !!route.params?.jumpToStep; // True when user is repurchasing a package
     const [pickerModal, setPickerModal] = useState({ visible: false, field: null });
+    const [upiError, setUpiError] = useState('');
 
     const [form, setForm] = useState({
         package_name: '',
@@ -296,10 +297,9 @@ const KYCVerificationScreen = ({ navigation, route }) => {
                 else Alert.alert('Invalid IFSC', msg);
                 return;
             }
-            if (upi_id && !upi_id.includes('@')) {
-                const msg = 'Please enter a valid UPI ID (e.g. name@upi).';
-                if (Platform.OS === 'web') window.alert(msg);
-                else Alert.alert('Invalid UPI', msg);
+            if (upi_id && upiError) {
+                if (Platform.OS === 'web') window.alert(upiError);
+                else Alert.alert('Invalid UPI', upiError);
                 return;
             }
             console.log('Validation passed, moving to step 2');
@@ -642,13 +642,27 @@ const KYCVerificationScreen = ({ navigation, route }) => {
                     <View style={styles.inputGroup}>
                         <Text style={styles.label}>UPI ID (optional)</Text>
                         <TextInput
-                            style={styles.input}
+                            style={[styles.input, upiError ? { borderColor: 'red' } : {}]}
                             placeholder="example@upi"
                             value={form.upi_id}
-                            onChangeText={(v) => setForm({ ...form, upi_id: v.toLowerCase().replace(/[^a-z0-9@.\-_]/g, '') })}
+                            onChangeText={(v) => {
+                                const cleanUpi = v.toLowerCase().replace(/[^a-z0-9@.\-_]/g, '');
+                                setForm({ ...form, upi_id: cleanUpi });
+                                if (!cleanUpi) {
+                                    setUpiError('');
+                                } else {
+                                    const upiRegex = /^[a-zA-Z0-9.\-_]{2,256}@[a-zA-Z]{2,64}$/;
+                                    if (!upiRegex.test(cleanUpi)) {
+                                        setUpiError('Invalid UPI format (Handle after @ must only be letters)');
+                                    } else {
+                                        setUpiError('');
+                                    }
+                                }
+                            }}
                             autoCapitalize="none"
                             maxLength={50}
                         />
+                        {!!upiError && <Text style={{ color: 'red', fontSize: 11, marginTop: 4, marginLeft: 4 }}>{upiError}</Text>}
                     </View>
 
                     <Text style={styles.label}>Upload Documents</Text>

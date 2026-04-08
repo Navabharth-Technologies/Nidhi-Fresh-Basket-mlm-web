@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Platform, Animated, Alert } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Platform, Animated, Alert, Image } from 'react-native';
 import { DrawerContentScrollView, useDrawerStatus } from '@react-navigation/drawer';
 import { COLORS } from '../theme/theme';
 import { LayoutDashboard, Wallet, Network, Package, User, Power, Lock } from 'lucide-react-native';
@@ -93,7 +93,14 @@ const CustomDrawerContent = (props) => {
                 >
                     <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                         <View style={styles.profileBadge}>
-                            <User size={24} color={COLORS.primary} />
+                            {profile?.profile_image_binary ? (
+                                <Image 
+                                    source={{ uri: `${apiClient.defaults.baseURL}/users/view-profile-image/${profile.id}?t=${Date.now()}` }} 
+                                    style={styles.avatarImage} 
+                                />
+                            ) : (
+                                <User size={24} color={COLORS.primary} />
+                            )}
                         </View>
                         <View>
                             <Text style={styles.userName} numberOfLines={1}>{profile?.full_name || user?.full_name || 'Member'}</Text>
@@ -198,6 +205,13 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
         marginRight: 12,
+        overflow: 'hidden', // Ensure image is circular
+        borderWidth: 1.5,
+        borderColor: COLORS.primary + '20',
+    },
+    avatarImage: {
+        width: '100%',
+        height: '100%',
     },
     userName: {
         fontSize: 16,

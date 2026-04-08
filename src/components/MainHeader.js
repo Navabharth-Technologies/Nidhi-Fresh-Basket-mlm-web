@@ -1,9 +1,12 @@
 import React from 'react';
-import { StyleSheet, View, Text, TouchableOpacity } from 'react-native';
+import { StyleSheet, View, Text, TouchableOpacity, Image } from 'react-native';
 import { Menu, User, ChevronLeft } from 'lucide-react-native';
+import { useAuth } from '../store/AuthContext';
+import apiClient from '../api/client';
 import { COLORS } from '../theme/theme';
 
 const MainHeader = ({ title, navigation, onProfilePress, showBack, hideProfile }) => {
+    const { profile } = useAuth();
     return (
         <View style={styles.header}>
             <View style={styles.leftSection}>
@@ -38,7 +41,16 @@ const MainHeader = ({ title, navigation, onProfilePress, showBack, hideProfile }
                     onPress={onProfilePress || (() => navigation.navigate('Main', { screen: 'Profile' }))}
                     activeOpacity={0.7}
                 >
-                    <User color={COLORS.primary} size={24} strokeWidth={1.8} />
+                    <View style={styles.headerAvatar}>
+                        {profile?.profile_image_binary ? (
+                            <Image 
+                                source={{ uri: `${apiClient.defaults.baseURL}/users/view-profile-image/${profile.id}?t=${Date.now()}` }} 
+                                style={styles.avatarImage} 
+                            />
+                        ) : (
+                            <User color={COLORS.primary} size={24} strokeWidth={1.8} />
+                        )}
+                    </View>
                 </TouchableOpacity>
             ) : (
                 <View style={styles.profileBtn} />
@@ -86,6 +98,21 @@ const styles = StyleSheet.create({
         height: 44,
         alignItems: 'flex-end',
         justifyContent: 'center',
+    },
+    headerAvatar: {
+        width: 32,
+        height: 32,
+        borderRadius: 16,
+        backgroundColor: COLORS.primary + '15',
+        justifyContent: 'center',
+        alignItems: 'center',
+        overflow: 'hidden',
+        borderWidth: 1,
+        borderColor: COLORS.primary + '20',
+    },
+    avatarImage: {
+        width: '100%',
+        height: '100%',
     }
 });
 

@@ -15,16 +15,13 @@ export default function App() {
         html, body, #root, #root > div {
           height: 100% !important;
           width: 100% !important;
-          overflow: auto !important;
-          -webkit-overflow-scrolling: touch !important;
-          overscroll-behavior-y: auto !important;
+          overflow: hidden !important;
           margin: 0;
           padding: 0;
         }
-        /* Ensure the main app container allows expansion for scrolling */
+        /* Ensure the main app container fills the viewport */
         [data-contents="true"], .css-view-175oi2r {
-          min-height: 100% !important;
-          height: auto !important;
+          height: 100% !important;
           display: flex !important;
           flex-direction: column !important;
         }

@@ -69,7 +69,7 @@ const TransactionItem = ({ item }) => {
                         {isCredit ? <ArrowDownLeft color={iconColor} size={16} /> : <ArrowUpRight color={iconColor} size={16} />}
                     </View>
                     <View style={styles.txTitleInfo}>
-                        <Text style={styles.txDesc} numberOfLines={1}>{title}</Text>
+                        <Text style={styles.txDesc}>{title}</Text>
                         {isWithdraw && (
                             <View style={[styles.miniBadge,
                             isApproved ? styles.miniApproved :
@@ -84,11 +84,23 @@ const TransactionItem = ({ item }) => {
                 </View>
 
                 <View style={styles.txSecondaryInfo}>
-                    <Text style={styles.txDate} numberOfLines={1}>
-                        {new Date(item.created_at).toLocaleDateString()} • {item.description || (isWithdraw ? `Request for ₹${item.amount}` : '')}
+                    <Text style={styles.txDate}>
+                        {new Date(item.created_at || item.date).toLocaleDateString()}
                     </Text>
+                    
+                    {/* Explicit UID and From User Link if available */}
+                    {item.from_user_id_code && (
+                        <Text style={styles.txFromUser}>
+                             From: {item.from_user_name || 'Member'} ({item.from_user_id_code})
+                        </Text>
+                    )}
+
+                    <Text style={styles.txFullDesc}>
+                        {item.description || (isWithdraw ? `Request for ₹${item.amount}` : '')}
+                    </Text>
+                    
                     {isRejected && item.rejection_reason && (
-                        <Text style={styles.rejectionText} numberOfLines={2}>
+                        <Text style={styles.rejectionText}>
                             Reason: {item.rejection_reason}
                         </Text>
                     )}
@@ -176,9 +188,13 @@ const WalletScreen = () => {
             <View style={styles.container}>
                 <MainHeader title="Wallet" navigation={navigation} hideProfile={true} />
                 <View style={styles.balanceHeader}>
-                    <View>
+                    <View style={{ flex: 1 }}>
                         <Text style={styles.headerLabel}>Total Balance</Text>
                         <Text style={styles.balanceText}>₹{balances.total_balance}</Text>
+                    </View>
+                    <View style={styles.uidBadge}>
+                        <Text style={styles.uidLabel}>UID</Text>
+                        <Text style={styles.uidText}>{commissionTx[0]?.user_userid || profile?.userid || '...'}</Text>
                     </View>
                 </View>
 
@@ -304,6 +320,17 @@ const styles = StyleSheet.create({
     },
     headerLabel: { color: COLORS.textSecondary, marginBottom: 4, fontSize: 15, textAlign: 'center' },
     balanceText: { fontSize: 32, color: COLORS.secondary, fontWeight: 'bold' },
+    uidBadge: {
+        backgroundColor: COLORS.secondary + '15',
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+        borderRadius: 10,
+        alignItems: 'center',
+        borderWidth: 1,
+        borderColor: COLORS.secondary + '30',
+    },
+    uidLabel: { fontSize: 10, color: COLORS.secondary, fontWeight: 'bold', textTransform: 'uppercase' },
+    uidText: { fontSize: 13, color: COLORS.secondary, fontWeight: 'bold', marginTop: 1 },
 
     // Section layout (matches Dashboard style)
     section: {
@@ -448,8 +475,10 @@ const styles = StyleSheet.create({
     txMainRow: { flexDirection: 'row', alignItems: 'center' },
     txTitleInfo: { flex: 1, flexDirection: 'row', alignItems: 'center' },
     txSecondaryInfo: { marginLeft: 44 }, // 32 (icon) + 12 (margin)
-    txDesc: { color: '#1e293b', fontSize: 15, fontWeight: '600' },
-    txDate: { color: '#64748b', fontSize: 12, marginTop: 2 },
+    txDesc: { color: '#1e293b', fontSize: 16, fontWeight: 'bold' },
+    txDate: { color: '#64748b', fontSize: 12, marginTop: 4, fontWeight: '500' },
+    txFromUser: { fontSize: 13, color: COLORS.secondary, marginTop: 4, fontWeight: '600' },
+    txFullDesc: { color: '#64748b', fontSize: 13, marginTop: 4, lineHeight: 18 },
     txAmount: { fontSize: 16, fontWeight: 'bold' },
     emptyText: { color: COLORS.textSecondary, textAlign: 'center', marginTop: 20 },
 

@@ -307,6 +307,7 @@ const ProfileScreen = ({ navigation }) => {
                                 </View>
                             </View>
                             <View style={[styles.card, { marginTop: 5 }]}>
+                                <ProfileItem label="User Code (UID)" value={profile.userid} icon={Hash} iconColor="#16a34a" />
                                 <ProfileItem label="Phone Number" value={profile.phone} icon={Phone} iconColor="#3b82f6" />
                                 <ProfileItem label="Email ID" value={profile.email} icon={Mail} iconColor="#ef4444" />
                             </View>

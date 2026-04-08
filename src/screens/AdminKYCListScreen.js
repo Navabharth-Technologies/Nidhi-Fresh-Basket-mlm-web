@@ -559,6 +559,7 @@ const AdminKYCListScreen = ({ navigation }) => {
                     </View>
                 ) : (
                     <FlatList
+                        style={{ flex: 1 }}
                         data={requests}
                         keyExtractor={(item) => item.id.toString()}
                         renderItem={activeSection === 'withdraw' ? renderWithdrawItem : renderKYCItem}

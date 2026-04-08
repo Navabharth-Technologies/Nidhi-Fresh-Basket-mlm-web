@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "mobile",
-    "slug": "mobile",
+    "name": "Nidhi Fresh Basket",
+    "slug": "nidhi-fresh-basket",
     "platforms": ["android", "ios", "web"],
     "version": "1.0.0",
     "orientation": "portrait",

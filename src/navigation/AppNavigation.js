@@ -127,8 +127,8 @@ const AppNavigation = () => {
     };
 
     return (
-        <NavigationContainer 
-            theme={MyTheme} 
+        <NavigationContainer
+            theme={MyTheme}
             linking={Platform.OS === 'web' ? { ...linking, prefixes: [] } : linking}
         >
             <Stack.Navigator screenOptions={{ headerShown: false, contentStyle: { backgroundColor: 'transparent' } }}>
@@ -151,19 +151,19 @@ const AppNavigation = () => {
                             component={AdminKYCListScreen}
                             options={{
                                 headerShown: true,
-                                headerStyle: { height: 100 },
+                                headerStyle: { height: 120 },
                                 headerLeft: () => null,
-                                 headerTitle: () => {
+                                headerTitle: () => {
                                     const { width } = Dimensions.get('window');
                                     const isPhone = width < 768;
                                     return (
                                         <View style={{ flexDirection: 'row', alignItems: 'center', height: 100 }}>
                                             <Image
                                                 source={require('../../assets/nidhi_logo.png')}
-                                                style={{ 
-                                                    width: isPhone ? 160 : 250, 
-                                                    height: isPhone ? 100 : 150, 
-                                                    marginLeft: isPhone ? -25 : -30 
+                                                style={{
+                                                    width: isPhone ? 160 : 250,
+                                                    height: isPhone ? 200 : 170,
+                                                    marginLeft: isPhone ? -25 : -30
                                                 }}
                                                 resizeMode="contain"
                                             />
