@@ -15,6 +15,7 @@ console.log('API Base URL resolved to:', API_BASE_URL, ' (DEV:', __DEV__, ')');
 
 const apiClient = axios.create({
     baseURL: API_BASE_URL,
+    timeout: 60000, // 60 seconds timeout for uploads
     headers: {
         'Content-Type': 'application/json'
     }
