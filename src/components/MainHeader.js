@@ -44,7 +44,7 @@ const MainHeader = ({ title, navigation, onProfilePress, showBack, hideProfile }
                     <View style={styles.headerAvatar}>
                         {profile?.profile_image_binary ? (
                             <Image 
-                                source={{ uri: `${apiClient.defaults.baseURL}/users/view-profile-image/${profile.id}?t=${Date.now()}` }} 
+                                source={{ uri: `${apiClient.defaults.baseURL}/users/view-profile-image/${profile.id}?v=${new Date(profile.profile_image_updated_at || profile.created_at || 0).getTime()}` }} 
                                 style={styles.avatarImage} 
                             />
                         ) : (

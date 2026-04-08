@@ -107,7 +107,7 @@ const ProfileScreen = ({ navigation }) => {
             setProfile(res.data);
             setGlobalProfile(res.data);
             if (res.data.profile_image_binary) {
-                setProfileImage(`${apiClient.defaults.baseURL}/users/view-profile-image/${res.data.id}?t=${Date.now()}`);
+                setProfileImage(`${apiClient.defaults.baseURL}/users/view-profile-image/${res.data.id}?v=${new Date(res.data.profile_image_updated_at || res.data.created_at || 0).getTime()}`);
             } else {
                 setProfileImage(null);
             }

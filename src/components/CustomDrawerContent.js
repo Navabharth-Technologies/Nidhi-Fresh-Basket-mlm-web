@@ -95,7 +95,7 @@ const CustomDrawerContent = (props) => {
                         <View style={styles.profileBadge}>
                             {profile?.profile_image_binary ? (
                                 <Image 
-                                    source={{ uri: `${apiClient.defaults.baseURL}/users/view-profile-image/${profile.id}?t=${Date.now()}` }} 
+                                    source={{ uri: `${apiClient.defaults.baseURL}/users/view-profile-image/${profile.id}?v=${new Date(profile.profile_image_updated_at || profile.joined || 0).getTime()}` }} 
                                     style={styles.avatarImage} 
                                 />
                             ) : (
