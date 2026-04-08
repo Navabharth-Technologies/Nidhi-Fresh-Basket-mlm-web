@@ -126,9 +126,20 @@ const PackageSelectionScreen = ({ navigation }) => {
 
     const { logout } = useAuth();
 
+    const [refreshing, setRefreshing] = useState(false);
+
+    const onRefresh = () => {
+        setRefreshing(true);
+        fetchPackages();
+    };
+
     return (
         <ScreenBackground subtle>
-            <ScrollView style={styles.container} contentContainerStyle={[styles.scrollContent, isDesktop && styles.scrollContentDesktop]}>
+            <ScrollView 
+                style={styles.container} 
+                contentContainerStyle={[styles.scrollContent, isDesktop && styles.scrollContentDesktop]}
+                refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={COLORS.secondary} />}
+            >
                 <View style={[styles.header, isDesktop && styles.headerDesktop]}>
                     <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
                         <Text style={styles.title}>Choose Your Plan</Text>
