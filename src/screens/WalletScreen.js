@@ -87,18 +87,18 @@ const TransactionItem = ({ item }) => {
                     <Text style={styles.txDate}>
                         {new Date(item.created_at || item.date).toLocaleDateString()}
                     </Text>
-                    
+
                     {/* Explicit UID and From User Link if available */}
                     {item.from_user_id_code && (
                         <Text style={styles.txFromUser}>
-                             From: {item.from_user_name || 'Member'} ({item.from_user_id_code})
+                            From: {item.from_user_name || 'Member'} ({item.from_user_id_code})
                         </Text>
                     )}
 
                     <Text style={styles.txFullDesc}>
                         {item.description || (isWithdraw ? `Request for ₹${item.amount}` : '')}
                     </Text>
-                    
+
                     {isRejected && item.rejection_reason && (
                         <Text style={styles.rejectionText}>
                             Reason: {item.rejection_reason}
@@ -188,13 +188,9 @@ const WalletScreen = () => {
             <View style={styles.container}>
                 <MainHeader title="Wallet" navigation={navigation} hideProfile={true} />
                 <View style={styles.balanceHeader}>
-                    <View style={{ flex: 1 }}>
+                    <View>
                         <Text style={styles.headerLabel}>Total Balance</Text>
                         <Text style={styles.balanceText}>₹{balances.total_balance}</Text>
-                    </View>
-                    <View style={styles.uidBadge}>
-                        <Text style={styles.uidLabel}>UID</Text>
-                        <Text style={styles.uidText}>{commissionTx[0]?.user_userid || profile?.userid || '...'}</Text>
                     </View>
                 </View>
 
@@ -318,7 +314,7 @@ const styles = StyleSheet.create({
         borderRadius: 20,
         backgroundColor: COLORS.background,
     },
-    headerLabel: { color: COLORS.textSecondary, marginBottom: 4, fontSize: 15, textAlign: 'center' },
+    headerLabel: { color: COLORS.black, marginBottom: 4, fontSize: 16, textAlign: 'left' },
     balanceText: { fontSize: 32, color: COLORS.secondary, fontWeight: 'bold' },
     uidBadge: {
         backgroundColor: COLORS.secondary + '15',
